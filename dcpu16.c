@@ -21,11 +21,34 @@ void dcpu16_dump_ram(unsigned int start, unsigned int end)
 	if(end >= DCPU16_RAM_SIZE)
 		end = DCPU16_RAM_SIZE - 1;
 
-	for(; start <= end; start++)
+	if(start % 8 != 0)
 	{
-		DCPU16_WORD w = ram[start];
-		printf("RAM %.4x:\t%.4x\n", start, w);
+		int tmp = start / 8;
+		start = tmp * 8;
 	}
+
+	if(end % 8 != 0)
+	{
+		int tmp = end / 8;
+		end = (tmp + 1) * 8;
+	}
+
+	printf("\nRAM DUMP\n");
+
+	for(; start <= end; start+=8)
+	{
+		printf("%.4x:", start);
+
+		for(int i = 0; i < 8; i++)
+		{
+			DCPU16_WORD w = ram[start + i];
+			printf("%.4x ", w);
+		}
+
+		putchar('\n');
+	}
+
+	putchar('\n');
 }
 
 int dcpu16_get_pointer(char v, char a, DCPU16_WORD ** retval)
@@ -478,7 +501,7 @@ int dcpu16_step()
 	}
 }
 
-int dcpu16_init(char * ram_file)
+void dcpu16_init()
 {
 	// Set registers
 	reg_a = 0;
@@ -494,99 +517,129 @@ int dcpu16_init(char * ram_file)
 	reg_sp = 0;
 	reg_o = 0;
 
-	// Load the RAM
+	// Clear the RAM
 	memset(ram, 0 , sizeof(ram));
+}
 
-	if(ram_file != 0) {
-		FILE * rf = fopen(ram_file, "r");
-	
-		if(!rf) {
-			printf("couldn't load ram from file\n");
-			return 0;
-		}
 
-		int n = fread((char *) ram, sizeof(ram) * sizeof(DCPU16_WORD), 1, rf);
-		fclose(rf);
+void dcpu16_load_ram(char * ram_file)
+{
+	FILE * rf = fopen(ram_file, "r");
 
-		printf("ram loaded from file: %s\n", ram_file);
+	// Check for errors
+	if(!rf) {
+		printf("Unable to open ram file.\n");
+		return;
 	}
 
-	return 1;
+	// Load hexadecimal integers from the file
+	DCPU16_WORD * ram_p = ram;
+
+	while(!feof(rf)) {
+		DCPU16_WORD w;
+		if(fscanf(rf, "%hx", &w) > 0) {
+			*ram_p = w;
+			ram_p++;
+		}
+
+		// Check if there is more RAM
+		if(ram_p == ram + DCPU16_RAM_SIZE) {
+			printf("Couldn't load all RAM data from file, not enough RAM to store it in.");
+			break;
+		}
+			
+	}
+
+	fclose(rf);
 }
 
 void dcpu16_enter_ram()
 {
-	printf("enter ram as hexadecimal (small letters) values, 16-bit at a time\n");
-	printf("type -1 when you are done (rest of ram will be filled with zeroes)\n\n");
-
-	int tmp;
+	printf("ENTER RAM CONTENT MANUALLY\n");
+	printf("Expects lower case letters, hexadecimal 16-bit integers.\n\n");
+	printf("Type ENTER without entering a number when you are done."
+		"The rest of the RAM will be filled with zeroes.\n\n");
 
 	DCPU16_WORD word;
 	DCPU16_WORD * ram_p = ram;
 
-	while(1) {
-		unsigned int ram_index = ram_p - ram;
+	char tmp[64];
+	memset(tmp, 0, sizeof(tmp));
 
-		printf("%.4X:\t", ram_index);
-		if(!scanf("%x", &tmp))
+	for(;;) {
+		unsigned int ram_index = ram_p - ram;
+		printf("%.4x:\t", ram_index);
+
+		// Read input as a string
+		gets(tmp);
+		tmp[63] = 0;
+
+		if(!strcmp(tmp, ""))
 			break;
-		
-		if(tmp <= 0xFFFF && tmp >= 0) {
-			word = (DCPU16_WORD) tmp;
-			*ram_p = word;
-			ram_p++;
-		} else {
+
+		// Convert to unsigned short
+		if(!sscanf(tmp, "%hx", &word))
 			break;
-		}
+
+		*ram_p = word;
+		ram_p++;
 	}
 
 	putchar('\n');
 }
 
-void dcpu16_run() 
-{
-	while(reg_pc < 0xFFFF) {
-		dcpu16_step();
-	}
-}
-
 void dcpu16_run_debug()
 {
-	while(reg_pc < 0xFFFF) {
-		char c = getchar();
 
-		if(c == 's') {
-			printf("stepping\n");
-			printf("\tpc: %.4x\n", reg_pc);
-			printf("\tinstruction:%.4x\n", ram[reg_pc]);
-			printf("\tcompleted in %x cycles\n", dcpu16_step());
-			printf("\tnew pc: %.4x\n", reg_pc);
-		} else if(c == 'r') {
+	printf("You are now emulating in debug mode.\n"
+		"\tType 's' to execute the next instruction.\n"
+		"\tType 'r' to print the content of the registers.\n"
+		"\tType 'd' to display what's in the RAM.\n"
+		"\tType 'q' to quit.\n\n");
+
+	char c;
+
+	while(c != 'q') {
+		// Get new user input
+		c = getchar();
+
+		switch(c) {
+		case 's':
+
+			printf("pc: %.4x | instruction: %.4x | cycles: %d | pc afterwards: %.4x\t\n",
+				reg_pc, ram[reg_pc], dcpu16_step(), reg_pc);
+			break;
+		case 'r':
 			dcpu16_print_registers();
-		} else if(c == 'd') {
-			unsigned int start, end;
+			break;
 
-			printf("ram dump start index: ");
-			scanf("%x", &start);
-			printf("ram dump end index: ");
-			scanf("%x", &end);
-
-			dcpu16_dump_ram(start, end);
-		} else if(c == 'q') {
-			return;
+		case 'd':
+		{
+			unsigned int d_start;
+			unsigned int d_end;
+			printf("RAM dump start index: ");
+			scanf("%x", &d_start);
+			printf("RAM dump end index: ");
+			scanf("%x", &d_end);
+			dcpu16_dump_ram(d_start, d_end);
+			break;
 		}
+		};
 	}
 }
-
-
 
 void main(int argc, char * argv[]) 
 {
-	char * ram_file = argv[1];
+	printf("\nDCPU16 emulator\n\n");
+	
+	dcpu16_init();
 
-	printf("\nDCPU16 emulator v. 0.01\n\n");
-
-	dcpu16_init(0);
-	dcpu16_enter_ram();
+	if(argc > 1) {
+		char * ram_file = argv[1];
+		dcpu16_load_ram(ram_file);
+	} else {
+		dcpu16_enter_ram();
+	}
+	
 	dcpu16_run_debug();
 }

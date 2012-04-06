@@ -1,14 +1,14 @@
 This is an emulator for the DCPU16 CPU of Notch's new game 0x10c (link: 0x10.com).
 
-Right now it runs in debug mode, options will be available later.
+Right now it runs in debug mode, more options might be available later.
 
-To try the emulator start the executable (./dcpu16 on linux).
-Then you enter the program which will be put in RAM. Type -1 when you are done entering the RAM.
-The emulator is now running and let's you step through the code.
+To try the emulator:
+1. Compile using 'make'.
+2. Run the executable; ./dcpu16 RAMFILE where RAMFILE is a file to load hexadecimal integers from.
+   RAMFILE can be skipped if you want to enter the program code in the terminal manually.
 
-Type 's' if you want to execute the next instruction, aka step.
-Type 'r' if you want to know the content of the registers.
-Type 'd' if you want to view the content of RAM, it let's you specify the start and end index.
+
+The emulator is now running (more instructions will be printed to the terminal by the executable).
 
 That's it for now.
 
