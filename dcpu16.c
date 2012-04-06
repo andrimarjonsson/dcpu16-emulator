@@ -5,8 +5,6 @@
 DCPU16_WORD reg_a, reg_b, reg_c, reg_x, reg_y, reg_z, reg_i, reg_j, reg_pc, reg_sp, reg_o;
 DCPU16_WORD ram[DCPU16_RAM_SIZE];
 
-DCPU16_WORD a_literal_value, b_literal_value;
-
 void dcpu16_print_registers()
 {
 	printf("--------------------------------------------------------------\n");
@@ -17,8 +15,8 @@ void dcpu16_print_registers()
 
 void dcpu16_dump_ram(unsigned int start, unsigned int end)
 {
-	if(end >= DCPU16_RAM_SIZE)
-		end = DCPU16_RAM_SIZE - 1;
+	if(end >= DCPU16_RAM_SIZE - 8)
+		end = DCPU16_RAM_SIZE - 9;
 
 	if(start % 8 != 0) {
 		int tmp = start / 8;
@@ -46,7 +44,25 @@ void dcpu16_dump_ram(unsigned int start, unsigned int end)
 	putchar('\n');
 }
 
-int dcpu16_get_pointer(char v, char a, DCPU16_WORD ** retval)
+/* Returns the actual address (checks if the address is out of bounds, wraps around if it is). */
+int dcpu16_ram_address(int address)
+{
+	if(address >= DCPU16_RAM_SIZE)
+		address = address % DCPU16_RAM_SIZE; 
+}
+
+/* Subtracts one from the word (accounting for wraparound while the word is a RAM address) .*/
+int dcpu16_subtract_one_ram_address(DCPU16_WORD * w)
+{
+	if(*w == 0) {
+		*w = DCPU16_RAM_SIZE - 1;
+	} else {
+		*w = *w - 1;
+	}
+}
+
+
+int dcpu16_get_pointer(char v, DCPU16_WORD * literal_tmp_storage, DCPU16_WORD ** retval)
 {
 	switch(v) {
 		case DCPU16_AB_VALUE_REG_A:
@@ -98,101 +114,48 @@ int dcpu16_get_pointer(char v, char a, DCPU16_WORD ** retval)
 			*retval = &ram[reg_j];
 			return 0;
 		case DCPU16_AB_VALUE_PTR_REG_A_PLUS_WORD:
-			*retval = &ram[reg_a + ram[reg_pc + 1]];
-			if(*retval >= &ram[DCPU16_RAM_SIZE]) {
-				// Fix ram out of bounds (start over at zero)
-				*retval = (DCPU16_WORD *)((*retval - ram) % DCPU16_RAM_SIZE);
-			}
-
+			*retval = &ram[dcpu16_ram_address(reg_a + ram[dcpu16_ram_address(reg_pc)])];
 			reg_pc++;
 			return 1;
 		case DCPU16_AB_VALUE_PTR_REG_B_PLUS_WORD:
-			*retval = &ram[reg_b + ram[reg_pc + 1]];
-			if(*retval >= &ram[DCPU16_RAM_SIZE]) {
-				// Fix ram out of bounds (start over at zero)
-				*retval = (DCPU16_WORD *)((*retval - ram) % DCPU16_RAM_SIZE);
-			}
-
+			*retval = &ram[dcpu16_ram_address(reg_b + ram[dcpu16_ram_address(reg_pc)])];
 			reg_pc++;
 			return 1;
 		case DCPU16_AB_VALUE_PTR_REG_C_PLUS_WORD:
-			*retval = &ram[reg_c + ram[reg_pc + 1]];
-			if(*retval >= &ram[DCPU16_RAM_SIZE]) {
-				// Fix ram out of bounds (start over at zero)
-				*retval = (DCPU16_WORD *)((*retval - ram) % DCPU16_RAM_SIZE);
-			}
-
+			*retval = &ram[dcpu16_ram_address(reg_c + ram[dcpu16_ram_address(reg_pc)])];
 			reg_pc++;
 			return 1;
 		case DCPU16_AB_VALUE_PTR_REG_X_PLUS_WORD:
-			*retval = &ram[reg_x + ram[reg_pc + 1]];
-			if(*retval >= &ram[DCPU16_RAM_SIZE]) {
-				// Fix ram out of bounds (start over at zero)
-				*retval = (DCPU16_WORD *)((*retval - ram) % DCPU16_RAM_SIZE);
-			}
-
+			*retval = &ram[dcpu16_ram_address(reg_c + ram[dcpu16_ram_address(reg_pc)])];
 			reg_pc++;
 			return 1;
 		case DCPU16_AB_VALUE_PTR_REG_Y_PLUS_WORD:
-			*retval = &ram[reg_y + ram[reg_pc + 1]];
-			if(*retval >= &ram[DCPU16_RAM_SIZE]) {
-				// Fix ram out of bounds (start over at zero)
-				*retval = (DCPU16_WORD *)((*retval - ram) % DCPU16_RAM_SIZE);
-			}
-
+			*retval = &ram[dcpu16_ram_address(reg_y + ram[dcpu16_ram_address(reg_pc)])];
 			reg_pc++;
 			return 1;
 		case DCPU16_AB_VALUE_PTR_REG_Z_PLUS_WORD:
-			*retval = &ram[reg_z + ram[reg_pc + 1]];
-			if(*retval >= &ram[DCPU16_RAM_SIZE]) {
-				// Fix ram out of bounds (start over at zero)
-				*retval = (DCPU16_WORD *)((*retval - ram) % DCPU16_RAM_SIZE);
-			}
-
+			*retval = &ram[dcpu16_ram_address(reg_z + ram[dcpu16_ram_address(reg_pc)])];
 			reg_pc++;
 			return 1;
 		case DCPU16_AB_VALUE_PTR_REG_I_PLUS_WORD:
-			*retval = &ram[reg_i + ram[reg_pc + 1]];
-			if(*retval >= &ram[DCPU16_RAM_SIZE]) {
-				// Fix ram out of bounds (start over at zero)
-				*retval = (DCPU16_WORD *)((*retval - ram) % DCPU16_RAM_SIZE);
-			}
-
+			*retval = &ram[dcpu16_ram_address(reg_i + ram[dcpu16_ram_address(reg_pc)])];
 			reg_pc++;
 			return 1;
 		case DCPU16_AB_VALUE_PTR_REG_J_PLUS_WORD:
-			*retval = &ram[reg_j + ram[reg_pc + 1]];
-			if(*retval >= &ram[DCPU16_RAM_SIZE]) {
-				// Fix ram out of bounds (start over at zero)
-				*retval = (DCPU16_WORD *)((*retval - ram) % DCPU16_RAM_SIZE);
-			}
-
+			*retval = &ram[dcpu16_ram_address(reg_j + ram[dcpu16_ram_address(reg_pc)])];
 			reg_pc++;
 			return 1;
 		case DCPU16_AB_VALUE_POP:
-			*retval = &ram[reg_sp++];
-
-			if(reg_sp >= DCPU16_RAM_SIZE)
-			{
-				// Fix out of bounds
-				reg_sp = reg_sp % DCPU16_RAM_SIZE;
-			}
-
+			*retval = &ram[reg_sp];
+			reg_sp++;
+			reg_sp = dcpu16_ram_address(reg_sp);
 			return 0;
 		case DCPU16_AB_VALUE_PEEK:
 			*retval = &ram[reg_sp];
 			return 0;
 		case DCPU16_AB_VALUE_PUSH:
-			if(reg_sp <= 0)
-			{
-				// Fix out of bounds
-				reg_sp = DCPU16_RAM_SIZE - 1 + reg_sp;
-			} else {
-				reg_sp--;
-			}
-
+			dcpu16_subtract_one_ram_address(&reg_sp);
 			*retval = &ram[reg_sp];
-
 			return 0;
 		case DCPU16_AB_VALUE_REG_SP:
 			*retval = &reg_sp;
@@ -204,24 +167,21 @@ int dcpu16_get_pointer(char v, char a, DCPU16_WORD ** retval)
 			*retval = &reg_o;
 			return 0;
 		case DCPU16_AB_VALUE_PTR_WORD:
-			*retval = &ram[ram[reg_pc]];
+			*retval = &ram[dcpu16_ram_address(ram[dcpu16_ram_address(reg_pc)])];
 			reg_pc++;
 			return 1;
 		case DCPU16_AB_VALUE_WORD:
-			*retval = &ram[reg_pc];
+			*retval = &ram[dcpu16_ram_address(reg_pc)];
 			reg_pc++;
 			return 1;
 	};
 
+	// Handle embedded literal values
 	if(v >= 0x20 && v <= 0x3F) {
-		if(a == 1) {
-			a_literal_value = v - 0x20;
-			*retval = &a_literal_value;
-		} else if(a == 0) {
-			b_literal_value = v - 0x20;
-			*retval = &b_literal_value;
-		}
+		if(literal_tmp_storage)
+			*literal_tmp_storage = v - 0x20;
 
+		*retval = literal_tmp_storage;
 		return 0;
 	}
 
@@ -238,6 +198,31 @@ char dcpu16_is_literal(char v)
 	return 0;
 }
 
+/* Skips the next instruction (advances PC). */
+void dcpu16_skip_next_instruction()
+{
+	DCPU16_WORD w = ram[reg_pc];
+	char opcode = w & 0xF;
+				
+	reg_pc++;
+
+	if(opcode != DCPU16_OPCODE_NON_BASIC) {
+		char a = (w >> 4) & 0x3F;
+		char b = (w >> 10) & 0x3F;
+
+		DCPU16_WORD * b_word;
+		DCPU16_WORD * a_word;
+		dcpu16_get_pointer(a, 0, &a_word);
+		dcpu16_get_pointer(b, 0, &b_word);
+	} else {
+		char a = (w >> 10) & 0x3F;
+
+		DCPU16_WORD * a_word;
+		dcpu16_get_pointer(a, 0, &a_word);
+	}
+
+}
+
 int dcpu16_step() 
 {
 	DCPU16_WORD w = ram[reg_pc];
@@ -248,22 +233,28 @@ int dcpu16_step()
 	reg_pc++;
 
 	if(opcode != DCPU16_OPCODE_NON_BASIC) {
+		// Basic instructions
 
 		char a = (w >> 4) & 0x3F;
 		char b = (w >> 10) & 0x3F;
 
+		// Temporary storage for embedded literal values
+		DCPU16_WORD a_literal_tmp, b_literal_tmp;
+
+		// Pointer to a and b values
 		DCPU16_WORD * b_word;
 		DCPU16_WORD * a_word;
-		cycles += dcpu16_get_pointer(a, 1, &a_word);
-		cycles += dcpu16_get_pointer(b, 0, &b_word);
+		cycles += dcpu16_get_pointer(a, &a_literal_tmp, &a_word);
+		cycles += dcpu16_get_pointer(b, &b_literal_tmp, &b_word);
 
-		char a_word_is_literal = dcpu16_is_literal(a);
+		// Is A a literal?
+		char a_is_literal = dcpu16_is_literal(a);
 
 		switch(opcode) {
 		case DCPU16_OPCODE_SET:
 			cycles += 1;
 
-			if(!a_word_is_literal) {
+			if(!a_is_literal) {
 				*a_word = *b_word;
 			}
 
@@ -271,8 +262,8 @@ int dcpu16_step()
 		case DCPU16_OPCODE_ADD:
 			cycles += 2;
 
-			if(!a_word_is_literal) {
-				if((int) *a_word + (int) *b_word > 65535) {
+			if(!a_is_literal) {
+				if((int) *a_word + (int) *b_word > 0xFFFF) {
 					reg_o = 1;
 				} else {
 					reg_o = 0;
@@ -285,7 +276,7 @@ int dcpu16_step()
 		case DCPU16_OPCODE_SUB:
 			cycles += 2;
 
-			if(!a_word_is_literal) {
+			if(!a_is_literal) {
 				if((int) *a_word - (int) *b_word < 0) {
 					reg_o = 0xFFFF;
 				} else {
@@ -299,7 +290,7 @@ int dcpu16_step()
 		case DCPU16_OPCODE_MUL:
 			cycles += 2;
 
-			if(!a_word_is_literal) {
+			if(!a_is_literal) {
 				reg_o = ((*a_word * *b_word) >> 16) & 0xFFFF;
 				*a_word = *a_word * *b_word;
 			}
@@ -308,7 +299,7 @@ int dcpu16_step()
 		case DCPU16_OPCODE_DIV:
 			cycles += 3;
 
-			if(!a_word_is_literal) {
+			if(!a_is_literal) {
 				if(*b_word == 0) {
 					reg_a = 0;
 					reg_o = 0;
@@ -322,7 +313,7 @@ int dcpu16_step()
 		case DCPU16_OPCODE_MOD:
 			cycles += 3;
 
-			if(!a_word_is_literal) {
+			if(!a_is_literal) {
 				if(*b_word == 0) {
 					reg_a = 0;
 				} else {
@@ -334,7 +325,7 @@ int dcpu16_step()
 		case DCPU16_OPCODE_SHL:
 			cycles += 2;
 
-			if(!a_word_is_literal) {
+			if(!a_is_literal) {
 				reg_o = ((*a_word << *b_word) >> 16) & 0xFFFF;
 				*a_word = *a_word << *b_word;
 			}
@@ -343,7 +334,7 @@ int dcpu16_step()
 		case DCPU16_OPCODE_SHR:
 			cycles += 2;
 
-			if(!a_word_is_literal) {
+			if(!a_is_literal) {
 				reg_o = ((*a_word << 16) >> *b_word) & 0xFFFF;
 				*a_word = *a_word >> *b_word;
 			}
@@ -352,7 +343,7 @@ int dcpu16_step()
 		case DCPU16_OPCODE_AND:
 			cycles += 1;
 
-			if(!a_word_is_literal) {
+			if(!a_is_literal) {
 				*a_word = *a_word & *b_word;
 			}
 
@@ -360,7 +351,7 @@ int dcpu16_step()
 		case DCPU16_OPCODE_BOR:
 			cycles += 1;
 
-			if(!a_word_is_literal) {
+			if(!a_is_literal) {
 				*a_word = *a_word | *b_word;
 			}
 
@@ -368,7 +359,7 @@ int dcpu16_step()
 		case DCPU16_OPCODE_XOR:
 			cycles += 1;
 
-			if(!a_word_is_literal) {
+			if(!a_is_literal) {
 				*a_word = *a_word ^ *b_word;
 			}
 
@@ -378,20 +369,7 @@ int dcpu16_step()
 			
 			if(*a_word != *b_word)
 			{
-				// Jump past the next instruction
-				DCPU16_WORD w_n = ram[reg_pc];
-				char opcode_n = w & 0xF;
-				
-				reg_pc++;
-
-				char a_n = (w_n >> 4) & 0x3F;
-				char b_n = (w_n >> 10) & 0x3F;
-
-				DCPU16_WORD * b_word_n;
-				DCPU16_WORD * a_word_n;
-				dcpu16_get_pointer(a_n, -1, &a_word_n);
-				dcpu16_get_pointer(b_n, -1, &b_word_n);
-
+				dcpu16_skip_next_instruction();
 				cycles++;
 			}
 
@@ -401,20 +379,7 @@ int dcpu16_step()
 
 			if(*a_word == *b_word)
 			{
-				// Jump past the next instruction
-				DCPU16_WORD w_n = ram[reg_pc];
-				char opcode_n = w & 0xF;
-				
-				reg_pc++;
-
-				char a_n = (w_n >> 4) & 0x3F;
-				char b_n = (w_n >> 10) & 0x3F;
-
-				DCPU16_WORD * b_word_n;
-				DCPU16_WORD * a_word_n;
-				dcpu16_get_pointer(a_n, -1, &a_word_n);
-				dcpu16_get_pointer(b_n, -1, &b_word_n);
-
+				dcpu16_skip_next_instruction();
 				cycles++;
 			}
 
@@ -424,20 +389,7 @@ int dcpu16_step()
 
 			if(*a_word <= *b_word)
 			{
-				// Jump past the next instruction
-				DCPU16_WORD w_n = ram[reg_pc];
-				char opcode_n = w & 0xF;
-				
-				reg_pc++;
-
-				char a_n = (w_n >> 4) & 0x3F;
-				char b_n = (w_n >> 10) & 0x3F;
-
-				DCPU16_WORD * b_word_n;
-				DCPU16_WORD * a_word_n;
-				dcpu16_get_pointer(a_n, -1, &a_word_n);
-				dcpu16_get_pointer(b_n, -1, &b_word_n);
-
+				dcpu16_skip_next_instruction();
 				cycles++;
 			}
 
@@ -447,45 +399,29 @@ int dcpu16_step()
 
 			if(*a_word & *b_word == 0)
 			{
-				// Jump past the next instruction
-				DCPU16_WORD w_n = ram[reg_pc];
-				char opcode_n = w & 0xF;
-				
-				reg_pc++;
-
-				char a_n = (w_n >> 4) & 0x3F;
-				char b_n = (w_n >> 10) & 0x3F;
-
-				DCPU16_WORD * b_word_n;
-				DCPU16_WORD * a_word_n;
-				dcpu16_get_pointer(a_n, -1, &a_word_n);
-				dcpu16_get_pointer(b_n, -1, &b_word_n);
-
+				dcpu16_skip_next_instruction();
 				cycles++;
 			}
 
 			return cycles;
 		};
 	} else {
-		// Non-basic
+		// Non-basic instructions
 		char o = (w >> 4) & 0x3F;
 		char a = (w >> 10) & 0x3F;
 
+		// Temporary storage for embedded literal values
+		DCPU16_WORD a_literal_tmp;
+
 		DCPU16_WORD * a_word;
-		cycles += dcpu16_get_pointer(a, 1, &a_word);
+		cycles += dcpu16_get_pointer(a, &a_literal_tmp, &a_word);
 
 		switch(o) {
 			case DCPU16_NON_BASIC_OPCODE_RESERVED_0:
 				
 				return cycles;
 			case DCPU16_NON_BASIC_OPCODE_JSR_A:
-				if(reg_sp <= 0)
-				{
-					// Fix out of bounds
-					reg_sp = DCPU16_RAM_SIZE - 1 + reg_sp;
-				} else {
-					reg_sp--;
-				}
+				dcpu16_subtract_one_ram_address(&reg_sp);
 
 				ram[reg_sp] = reg_pc;
 				reg_pc = *a_word;	
