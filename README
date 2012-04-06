@@ -7,6 +7,10 @@ To try the emulator:
 2. Run the executable; ./dcpu16 RAMFILE where RAMFILE is a file to load hexadecimal integers from.
    RAMFILE can be skipped if you want to enter the program code in the terminal manually.
 
+example:
+
+./dcpu16 program_file
+
 
 The emulator is now running (more instructions will be printed to the terminal by the executable).
 

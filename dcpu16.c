@@ -2,7 +2,6 @@
 #include <string.h>
 #include "dcpu16.h"
 
-
 DCPU16_WORD reg_a, reg_b, reg_c, reg_x, reg_y, reg_z, reg_i, reg_j, reg_pc, reg_sp, reg_o;
 DCPU16_WORD ram[DCPU16_RAM_SIZE];
 
@@ -21,26 +20,22 @@ void dcpu16_dump_ram(unsigned int start, unsigned int end)
 	if(end >= DCPU16_RAM_SIZE)
 		end = DCPU16_RAM_SIZE - 1;
 
-	if(start % 8 != 0)
-	{
+	if(start % 8 != 0) {
 		int tmp = start / 8;
 		start = tmp * 8;
 	}
 
-	if(end % 8 != 0)
-	{
+	if(end % 8 != 0) {
 		int tmp = end / 8;
 		end = (tmp + 1) * 8;
 	}
 
 	printf("\nRAM DUMP\n");
 
-	for(; start <= end; start+=8)
-	{
+	for(; start <= end; start+=8) {
 		printf("%.4x:", start);
 
-		for(int i = 0; i < 8; i++)
-		{
+		for(int i = 0; i < 8; i++) {
 			DCPU16_WORD w = ram[start + i];
 			printf("%.4x ", w);
 		}
@@ -427,7 +422,7 @@ int dcpu16_step()
 		case DCPU16_OPCODE_IFG:
 			cycles += 2;
 
-			if(*a_word < *b_word)
+			if(*a_word <= *b_word)
 			{
 				// Jump past the next instruction
 				DCPU16_WORD w_n = ram[reg_pc];
@@ -521,7 +516,6 @@ void dcpu16_init()
 	memset(ram, 0 , sizeof(ram));
 }
 
-
 void dcpu16_load_ram(char * ram_file)
 {
 	FILE * rf = fopen(ram_file, "r");
@@ -605,10 +599,13 @@ void dcpu16_run_debug()
 
 		switch(c) {
 		case 's':
-
+		{
+			int pc_before = reg_pc;
+			int cycles = dcpu16_step();
 			printf("pc: %.4x | instruction: %.4x | cycles: %d | pc afterwards: %.4x\t\n",
-				reg_pc, ram[reg_pc], dcpu16_step(), reg_pc);
+				pc_before, ram[pc_before], cycles, reg_pc);
 			break;
+		}
 		case 'r':
 			dcpu16_print_registers();
 			break;
@@ -637,6 +634,7 @@ void main(int argc, char * argv[])
 	if(argc > 1) {
 		char * ram_file = argv[1];
 		dcpu16_load_ram(ram_file);
+
 	} else {
 		dcpu16_enter_ram();
 	}
