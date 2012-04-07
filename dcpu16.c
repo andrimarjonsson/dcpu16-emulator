@@ -3,193 +3,111 @@
 #include "dcpu16.h"
 
 DCPU16_WORD reg_a, reg_b, reg_c, reg_x, reg_y, reg_z, reg_i, reg_j, reg_pc, reg_sp, reg_o;
+DCPU16_WORD * reg_pointers[] = { &reg_a, &reg_b, &reg_c, &reg_x, &reg_y, &reg_z, &reg_i, &reg_j };
+
 DCPU16_WORD ram[DCPU16_RAM_SIZE];
 
-void dcpu16_print_registers()
+/* Returns a pointer to the register with the index specified. NOTE: only works with register a, b, c, x, y, z, i and j. */
+DCPU16_WORD * dcpu16_register_pointer(char index)
 {
-	printf("--------------------------------------------------------------\n");
-	printf("a:%x b:%x c:%x x:%x y:%x z:%x i:%x j:%x pc:%x sp:%x o:%x\n", 
-		reg_a, reg_b, reg_c, reg_x, reg_y, reg_z, reg_i, reg_j, reg_pc, reg_sp, reg_o);
-	printf("--------------------------------------------------------------\n");
+	return reg_pointers[index];
 }
 
-void dcpu16_dump_ram(unsigned int start, unsigned int end)
+/* Returns the value of a register or somwhere in RAM. */
+unsigned char dcpu16_get_pointer(unsigned char where, DCPU16_WORD * tmp_storage, DCPU16_WORD ** retval)
 {
-	if(end >= DCPU16_RAM_SIZE - 8)
-		end = DCPU16_RAM_SIZE - 9;
+	if(where <= DCPU16_AB_VALUE_REG_J) {
+		// 0x00-0x07 (value of register)
+		*retval = dcpu16_register_pointer(where);
 
-	if(start % 8 != 0) {
-		int tmp = start / 8;
-		start = tmp * 8;
-	}
+		return 0;
+	} else if(where <= DCPU16_AB_VALUE_PTR_REG_J) {
+		// 0x08-0x0f (value at address pointed to by register)
+		*retval = &ram[*dcpu16_register_pointer(where - DCPU16_AB_VALUE_PTR_REG_A)];
+		
+		return 0;
+	} else if(where <= DCPU16_AB_VALUE_PTR_REG_J_PLUS_WORD) {
+		// 0x10-0x17 (value at address pointed to by the sum of the register and the next word)
+		*retval = &ram[(DCPU16_WORD)(*dcpu16_register_pointer(where - DCPU16_AB_VALUE_PTR_REG_A_PLUS_WORD) + ram[reg_pc])];
 
-	if(end % 8 != 0) {
-		int tmp = end / 8;
-		end = (tmp + 1) * 8;
-	}
+		return 1;
+	} else if(where >= 0x20 && where <= 0x3F) {
+		// 0x20-0x3F (literal value)
+		if(tmp_storage)
+			*tmp_storage = where - 0x20;
 
-	printf("\nRAM DUMP\n");
-
-	for(; start <= end; start+=8) {
-		printf("%.4x:", start);
-
-		for(int i = 0; i < 8; i++) {
-			DCPU16_WORD w = ram[start + i];
-			printf("%.4x ", w);
-		}
-
-		putchar('\n');
-	}
-
-	putchar('\n');
-}
-
-/* Returns the actual address (checks if the address is out of bounds, wraps around if it is). */
-int dcpu16_ram_address(int address)
-{
-	if(address >= DCPU16_RAM_SIZE)
-		address = address % DCPU16_RAM_SIZE; 
-}
-
-/* Subtracts one from the word (accounting for wraparound while the word is a RAM address) .*/
-int dcpu16_subtract_one_ram_address(DCPU16_WORD * w)
-{
-	if(*w == 0) {
-		*w = DCPU16_RAM_SIZE - 1;
-	} else {
-		*w = *w - 1;
-	}
-}
-
-
-int dcpu16_get_pointer(char v, DCPU16_WORD * literal_tmp_storage, DCPU16_WORD ** retval)
-{
-	switch(v) {
-		case DCPU16_AB_VALUE_REG_A:
-			*retval = &reg_a;
-			return 0;
-		case DCPU16_AB_VALUE_REG_B:
-			*retval = &reg_b;
-			return 0;
-		case DCPU16_AB_VALUE_REG_C:
-			*retval = &reg_c;
-			return 0;
-		case DCPU16_AB_VALUE_REG_X:
-			*retval = &reg_x;
-			return 0;
-		case DCPU16_AB_VALUE_REG_Y:
-			*retval = &reg_y;
-			return 0;
-		case DCPU16_AB_VALUE_REG_Z:
-			*retval = &reg_z;
-			return 0;
-		case DCPU16_AB_VALUE_REG_I:
-			*retval = &reg_i;
-			return 0;
-		case DCPU16_AB_VALUE_REG_J:
-			*retval = &reg_j;
-			return 0;
-		case DCPU16_AB_VALUE_PTR_REG_A:
-			*retval = &ram[reg_a];
-			return 0;
-		case DCPU16_AB_VALUE_PTR_REG_B:
-			*retval = &ram[reg_b];
-			return 0;
-		case DCPU16_AB_VALUE_PTR_REG_C:
-			*retval = &ram[reg_c];
-			return 0;
-		case DCPU16_AB_VALUE_PTR_REG_X:
-			*retval = &ram[reg_x];
-			return 0;
-		case DCPU16_AB_VALUE_PTR_REG_Y:
-			*retval = &ram[reg_y];
-			return 0;
-		case DCPU16_AB_VALUE_PTR_REG_Z:
-			*retval = &ram[reg_z];
-			return 0;
-		case DCPU16_AB_VALUE_PTR_REG_I:
-			*retval = &ram[reg_i];
-			return 0;
-		case DCPU16_AB_VALUE_PTR_REG_J:
-			*retval = &ram[reg_j];
-			return 0;
-		case DCPU16_AB_VALUE_PTR_REG_A_PLUS_WORD:
-			*retval = &ram[dcpu16_ram_address(reg_a + ram[dcpu16_ram_address(reg_pc)])];
-			reg_pc++;
-			return 1;
-		case DCPU16_AB_VALUE_PTR_REG_B_PLUS_WORD:
-			*retval = &ram[dcpu16_ram_address(reg_b + ram[dcpu16_ram_address(reg_pc)])];
-			reg_pc++;
-			return 1;
-		case DCPU16_AB_VALUE_PTR_REG_C_PLUS_WORD:
-			*retval = &ram[dcpu16_ram_address(reg_c + ram[dcpu16_ram_address(reg_pc)])];
-			reg_pc++;
-			return 1;
-		case DCPU16_AB_VALUE_PTR_REG_X_PLUS_WORD:
-			*retval = &ram[dcpu16_ram_address(reg_c + ram[dcpu16_ram_address(reg_pc)])];
-			reg_pc++;
-			return 1;
-		case DCPU16_AB_VALUE_PTR_REG_Y_PLUS_WORD:
-			*retval = &ram[dcpu16_ram_address(reg_y + ram[dcpu16_ram_address(reg_pc)])];
-			reg_pc++;
-			return 1;
-		case DCPU16_AB_VALUE_PTR_REG_Z_PLUS_WORD:
-			*retval = &ram[dcpu16_ram_address(reg_z + ram[dcpu16_ram_address(reg_pc)])];
-			reg_pc++;
-			return 1;
-		case DCPU16_AB_VALUE_PTR_REG_I_PLUS_WORD:
-			*retval = &ram[dcpu16_ram_address(reg_i + ram[dcpu16_ram_address(reg_pc)])];
-			reg_pc++;
-			return 1;
-		case DCPU16_AB_VALUE_PTR_REG_J_PLUS_WORD:
-			*retval = &ram[dcpu16_ram_address(reg_j + ram[dcpu16_ram_address(reg_pc)])];
-			reg_pc++;
-			return 1;
-		case DCPU16_AB_VALUE_POP:
-			*retval = &ram[reg_sp];
-			reg_sp++;
-			reg_sp = dcpu16_ram_address(reg_sp);
-			return 0;
-		case DCPU16_AB_VALUE_PEEK:
-			*retval = &ram[reg_sp];
-			return 0;
-		case DCPU16_AB_VALUE_PUSH:
-			dcpu16_subtract_one_ram_address(&reg_sp);
-			*retval = &ram[reg_sp];
-			return 0;
-		case DCPU16_AB_VALUE_REG_SP:
-			*retval = &reg_sp;
-			return 0;
-		case DCPU16_AB_VALUE_REG_PC:
-			*retval = &reg_pc;
-			return 0;
-		case DCPU16_AB_VALUE_REG_O:
-			*retval = &reg_o;
-			return 0;
-		case DCPU16_AB_VALUE_PTR_WORD:
-			*retval = &ram[dcpu16_ram_address(ram[dcpu16_ram_address(reg_pc)])];
-			reg_pc++;
-			return 1;
-		case DCPU16_AB_VALUE_WORD:
-			*retval = &ram[dcpu16_ram_address(reg_pc)];
-			reg_pc++;
-			return 1;
-	};
-
-	// Handle embedded literal values
-	if(v >= 0x20 && v <= 0x3F) {
-		if(literal_tmp_storage)
-			*literal_tmp_storage = v - 0x20;
-
-		*retval = literal_tmp_storage;
+		*retval = tmp_storage;
+		
 		return 0;
 	}
 
+	// The rest are handled individually
+	switch(where) {
+	case DCPU16_AB_VALUE_POP:
+		*retval = &ram[reg_sp];
+		reg_sp++;
+		return 0;
+	case DCPU16_AB_VALUE_PEEK:
+		*retval = &ram[reg_sp];
+		return 0;
+	case DCPU16_AB_VALUE_PUSH:
+		reg_sp--;
+		*retval = &ram[reg_sp];
+		return 0;
+	case DCPU16_AB_VALUE_REG_SP:
+		*retval = &reg_sp;
+		return 0;
+	case DCPU16_AB_VALUE_REG_PC:
+		*retval = &reg_pc;
+		return 0;
+	case DCPU16_AB_VALUE_REG_O:
+		*retval = &reg_o;
+		return 0;
+	case DCPU16_AB_VALUE_PTR_WORD:
+		*retval = &ram[ram[reg_pc]];
+		reg_pc++;
+		return 1;
+	case DCPU16_AB_VALUE_WORD:
+		*retval = &ram[reg_pc];
+		reg_pc++;
+		return 1;
+	};
 
 	*retval = 0;
 	return 0;
 }
 
+/* Must be used when setting the value pointed to by a pointer returned from dpcu16_get_pointer (allows hardware mapped RAM). */
+void dcpu16_set(DCPU16_WORD * where, DCPU16_WORD value)
+{
+	if(where == ram && where < ram + DCPU16_RAM_SIZE) {
+		DCPU16_WORD address = where - ram;
+
+		// Check for hardware mapped RAM here
+
+		*where = value;
+	} else {
+		// Register
+		*where = value;
+	}
+}
+
+/* Must be used when getting the value pointed to by a pointer returned from dpcu16_get_pointer (allows hardware mapped RAM). */
+DCPU16_WORD dcpu16_get(DCPU16_WORD * where)
+{
+	if(where == ram && where < ram + DCPU16_RAM_SIZE) {
+		DCPU16_WORD address = where - ram;
+
+		// Check for hardware mapped RAM here
+
+		return *where;
+	} else {
+		// Register
+		return *where;
+	}
+}
+
+/* Returns 1 if v is a literal, else 0. */
 char dcpu16_is_literal(char v)
 {
 	if(v == DCPU16_AB_VALUE_WORD || (v >= 0x20 && v <= 0x3F))
@@ -223,89 +141,110 @@ void dcpu16_skip_next_instruction()
 
 }
 
-int dcpu16_step() 
+/* Executes the next instruction, returns the number of cycles used. */
+unsigned char dcpu16_step() 
 {
+	unsigned char cycles = 0;
+
+	// Get the next instruction
 	DCPU16_WORD w = ram[reg_pc];
 	char opcode = w & 0xF;
-	int cycles = 0;
-
-	// Increase PC (opcode)
+	
 	reg_pc++;
 
-	if(opcode != DCPU16_OPCODE_NON_BASIC) {
-		// Basic instructions
+	if(opcode == DCPU16_OPCODE_NON_BASIC) {
+		// Non-basic instruction
+		char o = (w >> 4) & 0x3F;
+		char a = (w >> 10) & 0x3F;
 
+		// Temporary storage for embedded literal values
+		DCPU16_WORD a_literal_tmp;
+
+		// Get pointer to A
+		DCPU16_WORD * a_word;
+		cycles += dcpu16_get_pointer(a, &a_literal_tmp, &a_word);
+
+		switch(o) {
+		case DCPU16_NON_BASIC_OPCODE_RESERVED_0:
+				
+			return cycles;
+		case DCPU16_NON_BASIC_OPCODE_JSR_A:
+			reg_sp--;
+			ram[reg_sp] = reg_pc;
+
+			reg_pc = dcpu16_get(a_word);	
+
+			return cycles;
+		};
+
+	} else {
+		// Basic instruction
 		char a = (w >> 4) & 0x3F;
 		char b = (w >> 10) & 0x3F;
 
 		// Temporary storage for embedded literal values
 		DCPU16_WORD a_literal_tmp, b_literal_tmp;
 
-		// Pointer to a and b values
+		// Get pointer to A and B
 		DCPU16_WORD * b_word;
 		DCPU16_WORD * a_word;
 		cycles += dcpu16_get_pointer(a, &a_literal_tmp, &a_word);
 		cycles += dcpu16_get_pointer(b, &b_literal_tmp, &b_word);
 
 		// Is A a literal?
-		char a_is_literal = dcpu16_is_literal(a);
+		char a_literal = dcpu16_is_literal(a);
 
 		switch(opcode) {
 		case DCPU16_OPCODE_SET:
 			cycles += 1;
-
-			if(!a_is_literal) {
-				*a_word = *b_word;
-			}
+			if(!a_literal)
+				dcpu16_set(a_word, dcpu16_get(b_word));
 
 			return cycles;
 		case DCPU16_OPCODE_ADD:
 			cycles += 2;
-
-			if(!a_is_literal) {
-				if((int) *a_word + (int) *b_word > 0xFFFF) {
+			if(!a_literal) {
+				if((int) dcpu16_get(a_word) + (int) dcpu16_get(b_word) > 0xFFFF)
 					reg_o = 1;
-				} else {
+				else
 					reg_o = 0;
-				}
 
-				*a_word = *a_word + *b_word;
+				dcpu16_set(a_word, dcpu16_get(a_word) + dcpu16_get(b_word));
 			}
 
 			return cycles;
 		case DCPU16_OPCODE_SUB:
 			cycles += 2;
-
-			if(!a_is_literal) {
-				if((int) *a_word - (int) *b_word < 0) {
+			if(!a_literal) {
+				if((int) dcpu16_get(a_word) - (int) dcpu16_get(b_word) < 0) {
 					reg_o = 0xFFFF;
 				} else {
 					reg_o = 0;
 				}
 
-				*a_word = *a_word - *b_word;
+				dcpu16_set(a_word, dcpu16_get(a_word) - dcpu16_get(b_word));
 			}
 
 			return cycles;
 		case DCPU16_OPCODE_MUL:
 			cycles += 2;
 
-			if(!a_is_literal) {
-				reg_o = ((*a_word * *b_word) >> 16) & 0xFFFF;
-				*a_word = *a_word * *b_word;
+			if(!a_literal) {
+				reg_o = ((dcpu16_get(a_word) * dcpu16_get(b_word)) >> 16) & 0xFFFF;
+				dcpu16_set(a_word, dcpu16_get(a_word) * dcpu16_get(b_word));
 			}
 
 			return cycles;
 		case DCPU16_OPCODE_DIV:
 			cycles += 3;
 
-			if(!a_is_literal) {
-				if(*b_word == 0) {
+			if(!a_literal) {
+				if(dcpu16_get(b_word) == 0) {
 					reg_a = 0;
 					reg_o = 0;
 				} else {
-					reg_o = ((*a_word << 16) / b) & 0xFFFF;
-					*a_word = *a_word / *b_word;
+					reg_o = ((dcpu16_get(a_word) << 16) / dcpu16_get(b_word)) & 0xFFFF;
+					dcpu16_set(a_word, dcpu16_get(a_word) / dcpu16_get(b_word));
 				}
 			}
 
@@ -313,11 +252,11 @@ int dcpu16_step()
 		case DCPU16_OPCODE_MOD:
 			cycles += 3;
 
-			if(!a_is_literal) {
-				if(*b_word == 0) {
+			if(!a_literal) {
+				if(dcpu16_get(b_word) == 0) {
 					reg_a = 0;
 				} else {
-					*a_word = *a_word % *b_word;
+					dcpu16_set(a_word, dcpu16_get(a_word) % dcpu16_get(b_word));
 				}
 			}
 
@@ -325,49 +264,49 @@ int dcpu16_step()
 		case DCPU16_OPCODE_SHL:
 			cycles += 2;
 
-			if(!a_is_literal) {
-				reg_o = ((*a_word << *b_word) >> 16) & 0xFFFF;
-				*a_word = *a_word << *b_word;
+			if(!a_literal) {
+				reg_o = ((dcpu16_get(a_word) << dcpu16_get(b_word)) >> 16) & 0xFFFF;
+				dcpu16_set(a_word, dcpu16_get(a_word) << dcpu16_get(b_word));
 			}
 
 			return cycles;
 		case DCPU16_OPCODE_SHR:
 			cycles += 2;
 
-			if(!a_is_literal) {
-				reg_o = ((*a_word << 16) >> *b_word) & 0xFFFF;
-				*a_word = *a_word >> *b_word;
+			if(!a_literal) {
+				reg_o = ((dcpu16_get(a_word) << 16) >> dcpu16_get(b_word)) & 0xFFFF;
+				dcpu16_set(a_word, dcpu16_get(a_word) >> dcpu16_get(b_word));
 			}
 
 			return cycles;
 		case DCPU16_OPCODE_AND:
 			cycles += 1;
 
-			if(!a_is_literal) {
-				*a_word = *a_word & *b_word;
+			if(!a_literal) {
+				dcpu16_set(a_word, dcpu16_get(a_word) & dcpu16_get(b_word));
 			}
 
 			return cycles;
 		case DCPU16_OPCODE_BOR:
 			cycles += 1;
 
-			if(!a_is_literal) {
-				*a_word = *a_word | *b_word;
+			if(!a_literal) {
+				dcpu16_set(a_word, dcpu16_get(a_word) | dcpu16_get(b_word));
 			}
 
 			return cycles;
 		case DCPU16_OPCODE_XOR:
 			cycles += 1;
 
-			if(!a_is_literal) {
-				*a_word = *a_word ^ *b_word;
+			if(!a_literal) {
+				dcpu16_set(a_word, dcpu16_get(a_word) ^ dcpu16_get(b_word));
 			}
 
 			return cycles;
 		case DCPU16_OPCODE_IFE:
 			cycles += 2;
 			
-			if(*a_word != *b_word)
+			if(dcpu16_get(a_word) != dcpu16_get(b_word))
 			{
 				dcpu16_skip_next_instruction();
 				cycles++;
@@ -377,7 +316,7 @@ int dcpu16_step()
 		case DCPU16_OPCODE_IFN:
 			cycles += 2;
 
-			if(*a_word == *b_word)
+			if(dcpu16_get(a_word) == dcpu16_get(b_word))
 			{
 				dcpu16_skip_next_instruction();
 				cycles++;
@@ -387,7 +326,7 @@ int dcpu16_step()
 		case DCPU16_OPCODE_IFG:
 			cycles += 2;
 
-			if(*a_word <= *b_word)
+			if(dcpu16_get(a_word) <= dcpu16_get(b_word))
 			{
 				dcpu16_skip_next_instruction();
 				cycles++;
@@ -397,7 +336,7 @@ int dcpu16_step()
 		case DCPU16_OPCODE_IFB:
 			cycles += 2;	
 
-			if(*a_word & *b_word == 0)
+			if(dcpu16_get(a_word) & dcpu16_get(b_word) == 0)
 			{
 				dcpu16_skip_next_instruction();
 				cycles++;
@@ -405,33 +344,53 @@ int dcpu16_step()
 
 			return cycles;
 		};
-	} else {
-		// Non-basic instructions
-		char o = (w >> 4) & 0x3F;
-		char a = (w >> 10) & 0x3F;
-
-		// Temporary storage for embedded literal values
-		DCPU16_WORD a_literal_tmp;
-
-		DCPU16_WORD * a_word;
-		cycles += dcpu16_get_pointer(a, &a_literal_tmp, &a_word);
-
-		switch(o) {
-			case DCPU16_NON_BASIC_OPCODE_RESERVED_0:
-				
-				return cycles;
-			case DCPU16_NON_BASIC_OPCODE_JSR_A:
-				dcpu16_subtract_one_ram_address(&reg_sp);
-
-				ram[reg_sp] = reg_pc;
-				reg_pc = *a_word;	
-
-				return cycles;
-		};
-
 	}
+
+	return cycles;
 }
 
+/* Displays the contents of the registers. */
+void dcpu16_print_registers()
+{
+	printf("--------------------------------------------------------------\n");
+	printf("a:%x b:%x c:%x x:%x y:%x z:%x i:%x j:%x pc:%x sp:%x o:%x\n", 
+		reg_a, reg_b, reg_c, reg_x, reg_y, reg_z, reg_i, reg_j, reg_pc, reg_sp, reg_o);
+	printf("--------------------------------------------------------------\n");
+}
+
+/* Prints the contents of the RAM. */
+void dcpu16_dump_ram(unsigned int start, unsigned int end)
+{
+	if(end >= DCPU16_RAM_SIZE - 8)
+		end = DCPU16_RAM_SIZE - 9;
+
+	if(start % 8 != 0) {
+		int tmp = start / 8;
+		start = tmp * 8;
+	}
+
+	if(end % 8 != 0) {
+		int tmp = end / 8;
+		end = (tmp + 1) * 8;
+	}
+
+	printf("\nRAM DUMP\n");
+
+	for(; start <= end; start+=8) {
+		printf("%.4x:", start);
+
+		for(int i = 0; i < 8; i++) {
+			DCPU16_WORD w = ram[start + i];
+			printf("%.4x ", w);
+		}
+
+		putchar('\n');
+	}
+
+	putchar('\n');
+}
+
+/* Initializes the emulator (sets register values and clears the RAM) */
 void dcpu16_init()
 {
 	// Set registers
@@ -452,6 +411,7 @@ void dcpu16_init()
 	memset(ram, 0 , sizeof(ram));
 }
 
+/* Loads a program into the RAM, from a file. */
 void dcpu16_load_ram(char * ram_file)
 {
 	FILE * rf = fopen(ram_file, "r");
@@ -523,7 +483,7 @@ void dcpu16_run_debug()
 
 	printf("You are now emulating in debug mode.\n"
 		"\tType 's' to execute the next instruction.\n"
-		"\tType 'r' to print the content of the registers.\n"
+		"\tType 'r' to print the contents of the registers.\n"
 		"\tType 'd' to display what's in the RAM.\n"
 		"\tType 'q' to quit.\n\n");
 
@@ -538,19 +498,20 @@ void dcpu16_run_debug()
 		{
 			int pc_before = reg_pc;
 			int cycles = dcpu16_step();
-			printf("pc: %.4x | instruction: %.4x | cycles: %d | pc afterwards: %.4x\t\n",
+			printf("pc: %.4x | instruction: %.4x | cycles: %d | pc afterwards: %.4x\t\n\n",
 				pc_before, ram[pc_before], cycles, reg_pc);
 			break;
 		}
 		case 'r':
 			dcpu16_print_registers();
+			putchar('\n');
 			break;
 
 		case 'd':
 		{
 			unsigned int d_start;
 			unsigned int d_end;
-			printf("RAM dump start index: ");
+			printf("\nRAM dump start index: ");
 			scanf("%x", &d_start);
 			printf("RAM dump end index: ");
 			scanf("%x", &d_end);
@@ -561,19 +522,62 @@ void dcpu16_run_debug()
 	}
 }
 
+void dcpu16_run()
+{
+	while(!(ram[reg_pc] == (((0x20 + reg_pc) << 10) | 1) ||
+	      ram[reg_pc] == 0x7DC1 && ram[(DCPU16_WORD)(reg_pc + 1)] == reg_pc)) {
+		dcpu16_step();
+	}
+
+	printf("Infinite loop detected (probably reached end of code, yes this emulator is fast), emulator has been stopped.\n\n");
+	printf("STATE:\n");
+	dcpu16_print_registers();
+
+	char c = -1;
+
+	printf("\nWaiting for user input...\n"
+		"\tType 'd' to display what's in the RAM.\n"
+	       	"\tType 'q' to quit.\n\n");
+
+	while(c != 'q') {
+		// Get new user input
+		c = getchar();
+
+		if(c == 'd') {
+			unsigned int d_start;
+			unsigned int d_end;
+			printf("\nRAM dump start index: ");
+			scanf("%x", &d_start);
+			printf("RAM dump end index: ");
+			scanf("%x", &d_end);
+			dcpu16_dump_ram(d_start, d_end);
+		}
+	}
+}
+
 void main(int argc, char * argv[]) 
 {
-	printf("\nDCPU16 emulator\n\n");
-	
+	printf("\nDCPU16 emulator started\n\n");
 	dcpu16_init();
 
-	if(argc > 1) {
-		char * ram_file = argv[1];
-		dcpu16_load_ram(ram_file);
+	char debug_mode = 0;
+	char ram_loaded = 0;
 
-	} else {
-		dcpu16_enter_ram();
+	for(int c = 1; c < argc; c++) {
+		if(strcmp(argv[c], "-d") == 0) {
+			debug_mode = 1;
+		} else {
+			char * ram_file = argv[c];
+			dcpu16_load_ram(ram_file);
+			ram_loaded = 1;
+		}
 	}
-	
-	dcpu16_run_debug();
+
+	if(!ram_loaded)
+		dcpu16_enter_ram();
+
+	if(debug_mode)
+		dcpu16_run_debug();
+	else
+		dcpu16_run();
 }
