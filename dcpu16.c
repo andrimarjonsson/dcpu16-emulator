@@ -555,7 +555,7 @@ void dcpu16_run()
 	}
 }
 
-void main(int argc, char * argv[]) 
+int main(int argc, char * argv[]) 
 {
 	printf("\nDCPU16 emulator started\n\n");
 	dcpu16_init();
@@ -580,4 +580,6 @@ void main(int argc, char * argv[])
 		dcpu16_run_debug();
 	else
 		dcpu16_run();
+	
+	return 0;
 }
