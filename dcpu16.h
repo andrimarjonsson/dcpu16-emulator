@@ -58,4 +58,24 @@ typedef unsigned short DCPU16_WORD;
 #define DCPU16_AB_VALUE_PTR_WORD		0x1E
 #define DCPU16_AB_VALUE_WORD			0x1F
 
-#endif
+#define DCPU16_REGISTER_COUNT			11
+#define DCPU16_INDEX_REG_A				0
+#define DCPU16_INDEX_REG_B				1
+#define DCPU16_INDEX_REG_C				2
+#define DCPU16_INDEX_REG_X				3
+#define DCPU16_INDEX_REG_Y				4
+#define DCPU16_INDEX_REG_Z				5
+#define DCPU16_INDEX_REG_I				6
+#define DCPU16_INDEX_REG_J				7
+#define DCPU16_INDEX_REG_PC				8
+#define DCPU16_INDEX_REG_SP				9
+#define DCPU16_INDEX_REG_O				10
+
+typedef struct _dcpu16_t
+{
+	DCPU16_WORD registers[DCPU16_REGISTER_COUNT];
+	DCPU16_WORD ram[DCPU16_RAM_SIZE];
+} dcpu16_t;
+
+
+#endif // DCPU16_H
