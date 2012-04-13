@@ -27,6 +27,7 @@ unsigned char dcpu16_get_pointer(dcpu16_t *computer, unsigned char where, DCPU16
 	} else if(where <= DCPU16_AB_VALUE_PTR_REG_J_PLUS_WORD) {
 		// 0x10-0x17 (value at address pointed to by the sum of the register and the next word)
 		*retval = &computer->ram[(DCPU16_WORD)(*dcpu16_register_pointer(computer, where - DCPU16_AB_VALUE_PTR_REG_A_PLUS_WORD) + computer->ram[computer->registers[DCPU16_INDEX_REG_PC]])];
+		computer->registers[DCPU16_INDEX_REG_PC]++;
 
 		return 1;
 	} else if(where >= 0x20 && where <= 0x3F) {
