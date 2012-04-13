@@ -80,7 +80,7 @@ unsigned char dcpu16_get_pointer(unsigned char where, DCPU16_WORD * tmp_storage,
 /* Must be used when setting the value pointed to by a pointer returned from dpcu16_get_pointer (allows hardware mapped RAM). */
 void dcpu16_set(DCPU16_WORD * where, DCPU16_WORD value)
 {
-	if(where == ram && where < ram + DCPU16_RAM_SIZE) {
+	if(where >= ram && where < ram + DCPU16_RAM_SIZE) {
 		DCPU16_WORD address = where - ram;
 
 		// Check for hardware mapped RAM here
@@ -95,7 +95,7 @@ void dcpu16_set(DCPU16_WORD * where, DCPU16_WORD value)
 /* Must be used when getting the value pointed to by a pointer returned from dpcu16_get_pointer (allows hardware mapped RAM). */
 DCPU16_WORD dcpu16_get(DCPU16_WORD * where)
 {
-	if(where == ram && where < ram + DCPU16_RAM_SIZE) {
+	if(where >= ram && where < ram + DCPU16_RAM_SIZE) {
 		DCPU16_WORD address = where - ram;
 
 		// Check for hardware mapped RAM here
@@ -439,6 +439,9 @@ void dcpu16_load_ram(char * ram_file)
 		}
 			
 	}
+	
+	DCPU16_WORD bytesLoaded = ram_p - ram;
+	printf("Loaded %d bytes into RAM\n", (int)bytesLoaded);
 
 	fclose(rf);
 }
