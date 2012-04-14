@@ -1,23 +1,27 @@
 This is an emulator for the DCPU16 CPU of Notch's new game 0x10c (link: 0x10.com).
+Project source code is at: https://github.com/tobbebia/dcpu16-emulator
+Collaborators: tobbebia, skyfell
 
-Right now it runs in debug mode, more options might be available later.
+BUILDING:
+Use 'make all'. Output file will be found in /bin.
 
-To try the emulator:
-1. Compile using 'make'.
-2. Run the executable; ./dcpu16 RAMFILE where RAMFILE is a file to load hexadecimal integers from.
-   RAMFILE can be skipped if you want to enter the program code in the terminal manually.
+RUNNING:
+Terminal 'dcpu16 parameters ram_file'.
 
-   If you want to run in debug mode you have to type -d as an argument.
+	PARAMETERS:
+		-d	debug mode (let's you step through the instructions)
+		-b	ram file is in binary format with little endian words
 
+	EXAMPLES:
+		dcpu16 -d -b notch_program.bin
+		dcpu16 my_program.dat
+		dcpu16 -b my_program.bin
 
-Normal mode:
-./dcpu16 program_file
+NOTE:
+When running in normal mode (not debug mode), the emulator will run forever until it encounters an infinite loop of the
+following type:
 
-Debug mode:
-./dcpu16 -d program_file
+	hang: SET PC, hang
 
-The emulator is now running (more instructions will be printed to the terminal by the program).
-
-That's it for now.
-
-bia
+USING THE EMULATOR AS AN EMULATOR CORE IN YOUR GUI PROJECT:
+No real interface has been written yet, but we are working on it!
