@@ -467,39 +467,6 @@ int dcpu16_load_ram(dcpu16_t * computer, char * file, char binary)
 	printf("Loaded %d words into RAM\n", (int)words_loaded);
 	
 	return 1;
-
-/*
-	FILE * rf = fopen(ram_file, "r");
-
-	// Check for errors
-	if(!rf) {
-		printf("Unable to open ram file.\n");
-		return;
-	}
-
-	// Load hexadecimal integers from the file
-	DCPU16_WORD * ram_p = computer->ram;
-
-	while(!feof(rf)) {
-		DCPU16_WORD w;
-		if(fscanf(rf, "%hx", &w) > 0) {
-			*ram_p = w;
-			ram_p++;
-		}
-
-		// Check if there is more RAM
-		if(ram_p == computer->ram + DCPU16_RAM_SIZE) {
-			printf("Couldn't load all RAM data from file, not enough RAM to store it in.");
-			break;
-		}
-			
-	}
-	
-	DCPU16_WORD bytesLoaded = ram_p - computer->ram;
-	printf("Loaded %d words into RAM\n", (int)bytesLoaded);
-
-	fclose(rf);
-*/
 }
 
 
