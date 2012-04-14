@@ -1,5 +1,6 @@
 ; Written for dcpu16-emulator project (https://github.com/tobbebia/dcpu16-emulator)
 ; Program used to make sure changes to the emulator don't break anything.
+; Assemble using: https://github.com/AgentME/DCPU-16-Assembler
 ;
 ; Expected result:
 ;
@@ -25,14 +26,14 @@ SET [0x102], A
 
 ; Set to [0x..]
 :const3
-	WORD 3
+	DAT 3
 SET [0x103], [const3]
 
 ; Set to [0x.. + REG]
 :unused
-	WORD 0
+	DAT 0
 :const4
-	WORD 4
+	DAT 4
 SET A, unused
 SET [0x104], [1 + A]
 
