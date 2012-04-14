@@ -11,32 +11,29 @@ DCPU16_WORD * dcpu16_register_pointer(dcpu16_t *computer, char index)
 	return &computer->registers[index];
 }
 
-/* Returns the value of a register or somwhere in RAM. */
+/* Sets *retval to point to a register or a DCPU16_WORD in RAM.
+   Returns the number of cycles it took to look it up. */
 unsigned char dcpu16_get_pointer(dcpu16_t *computer, unsigned char where, DCPU16_WORD * tmp_storage, DCPU16_WORD ** retval)
 {
 	if(where <= DCPU16_AB_VALUE_REG_J) {
 		// 0x00-0x07 (value of register)
 		*retval = dcpu16_register_pointer(computer, where);
-
 		return 0;
 	} else if(where <= DCPU16_AB_VALUE_PTR_REG_J) {
 		// 0x08-0x0f (value at address pointed to by register)
 		*retval = &computer->ram[*dcpu16_register_pointer(computer, where - DCPU16_AB_VALUE_PTR_REG_A)];
-		
 		return 0;
 	} else if(where <= DCPU16_AB_VALUE_PTR_REG_J_PLUS_WORD) {
 		// 0x10-0x17 (value at address pointed to by the sum of the register and the next word)
-		*retval = &computer->ram[(DCPU16_WORD)(*dcpu16_register_pointer(computer, where - DCPU16_AB_VALUE_PTR_REG_A_PLUS_WORD) + computer->ram[computer->registers[DCPU16_INDEX_REG_PC]])];
+		*retval = &computer->ram[(DCPU16_WORD)(*dcpu16_register_pointer(computer, where - DCPU16_AB_VALUE_PTR_REG_A_PLUS_WORD) +
+			computer->ram[computer->registers[DCPU16_INDEX_REG_PC]])];
 		computer->registers[DCPU16_INDEX_REG_PC]++;
-
 		return 1;
 	} else if(where >= 0x20 && where <= 0x3F) {
 		// 0x20-0x3F (literal value)
 		if(tmp_storage)
 			*tmp_storage = where - 0x20;
-
 		*retval = tmp_storage;
-		
 		return 0;
 	}
 
@@ -84,11 +81,9 @@ void dcpu16_set(dcpu16_t * computer, DCPU16_WORD * where, DCPU16_WORD value)
 
 		// Check for hardware mapped RAM here
 
-		*where = value;
-	} else {
-		// Register
-		*where = value;
 	}
+		
+	*where = value;
 }
 
 /* Must be used when getting the value pointed to by a pointer returned from dpcu16_get_pointer (allows hardware mapped RAM). */
@@ -99,14 +94,12 @@ DCPU16_WORD dcpu16_get(dcpu16_t * computer, DCPU16_WORD * where)
 
 		// Check for hardware mapped RAM here
 
-		return *where;
-	} else {
-		// Register
-		return *where;
 	}
+
+	return *where;
 }
 
-/* Returns 1 if v is a literal, else 0. */
+/* Returns 1 if v is a literal value, else 0. */
 char dcpu16_is_literal(char v)
 {
 	if(v == DCPU16_AB_VALUE_WORD || (v >= 0x20 && v <= 0x3F))
@@ -353,16 +346,21 @@ void dcpu16_print_registers(dcpu16_t *computer)
 {
 	printf("--------------------------------------------------------------\n");
 	printf("a:%x b:%x c:%x x:%x y:%x z:%x i:%x j:%x pc:%x sp:%x o:%x\n", 
-		computer->registers[DCPU16_INDEX_REG_A], computer->registers[DCPU16_INDEX_REG_B], computer->registers[DCPU16_INDEX_REG_C], computer->registers[DCPU16_INDEX_REG_X], computer->registers[DCPU16_INDEX_REG_Y], computer->registers[DCPU16_INDEX_REG_Z], computer->registers[DCPU16_INDEX_REG_I], computer->registers[DCPU16_INDEX_REG_J], computer->registers[DCPU16_INDEX_REG_PC], computer->registers[DCPU16_INDEX_REG_SP], computer->registers[DCPU16_INDEX_REG_O]);
+		computer->registers[DCPU16_INDEX_REG_A], computer->registers[DCPU16_INDEX_REG_B], computer->registers[DCPU16_INDEX_REG_C],
+		computer->registers[DCPU16_INDEX_REG_X], computer->registers[DCPU16_INDEX_REG_Y], computer->registers[DCPU16_INDEX_REG_Z],
+		computer->registers[DCPU16_INDEX_REG_I], computer->registers[DCPU16_INDEX_REG_J], computer->registers[DCPU16_INDEX_REG_PC],
+		computer->registers[DCPU16_INDEX_REG_SP], computer->registers[DCPU16_INDEX_REG_O]);
 	printf("--------------------------------------------------------------\n");
 }
 
 /* Prints the contents of the RAM. */
-void dcpu16_dump_ram(dcpu16_t *computer, unsigned int start, unsigned int end)
+void dcpu16_dump_ram(dcpu16_t *computer, DCPU16_WORD start, DCPU16_WORD end)
 {
+	// Check if end is out ouf bounds
 	if(end >= DCPU16_RAM_SIZE - 8)
 		end = DCPU16_RAM_SIZE - 9;
 
+	// Align start and end addresses to multiples of 8
 	if(start % 8 != 0) {
 		int tmp = start / 8;
 		start = tmp * 8;
@@ -511,12 +509,12 @@ void dcpu16_run_debug(dcpu16_t *computer)
 
 		case 'd':
 		{
-			unsigned int d_start;
-			unsigned int d_end;
+			DCPU16_WORD d_start;
+			DCPU16_WORD d_end;
 			printf("\nRAM dump start index: ");
-			scanf("%x", &d_start);
+			scanf("%hx", &d_start);
 			printf("RAM dump end index: ");
-			scanf("%x", &d_end);
+			scanf("%hx", &d_end);
 			dcpu16_dump_ram(computer, d_start, d_end);
 			break;
 		}
@@ -546,12 +544,12 @@ void dcpu16_run(dcpu16_t *computer)
 		c = getchar();
 
 		if(c == 'd') {
-			unsigned int d_start;
-			unsigned int d_end;
+			DCPU16_WORD d_start;
+			DCPU16_WORD d_end;
 			printf("\nRAM dump start index: ");
-			scanf("%x", &d_start);
+			scanf("%hx", &d_start);
 			printf("RAM dump end index: ");
-			scanf("%x", &d_end);
+			scanf("%hx", &d_end);
 			dcpu16_dump_ram(computer, d_start, d_end);
 		}
 	}
