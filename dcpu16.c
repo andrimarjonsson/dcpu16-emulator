@@ -551,8 +551,8 @@ void dcpu16_profiler_step(dcpu16_t *computer)
 			// Time since last sample was taken
 			double instructions_per_second = (double)computer->profiling.instruction_count / sample_elapsed;
 			
-			printf("[ PROFILE ]\nSample Duration: %.3lf\nInstructions: %u\nInstructions per second: %.3lf\n-----------\n",
-				   sample_elapsed, computer->profiling.instruction_count, instructions_per_second);
+			printf("[ PROFILE ]\nSample Duration: %.3lf\nInstructions: %u\nMHz: %.2lf\n-----------\n",
+				   sample_elapsed, computer->profiling.instruction_count, (instructions_per_second / 1000000.0));
 			
 			// Reset instruction count
 			computer->profiling.instruction_count = 0;
