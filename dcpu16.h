@@ -73,19 +73,7 @@ typedef unsigned short DCPU16_WORD;
 
 typedef struct _dcpu16_t
 {
-	// Used for performance profiling
-	struct profiling {
-		unsigned char enabled;
-		double sample_time;
-		double sample_frequency;
-		double sample_start_time;
-		unsigned instruction_count;
-	} profiling;
-	
-	// All registers including PC and SP
 	DCPU16_WORD registers[DCPU16_REGISTER_COUNT];
-	
-	// RAM
 	DCPU16_WORD ram[DCPU16_RAM_SIZE];
 } dcpu16_t;
 
