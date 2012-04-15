@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <string.h>
+#define __need_struct_timeval 1
+#include <sys/time.h>
 #include "dcpu16.h"
 
 /* Returns a pointer to the register with the index specified. 
@@ -406,6 +408,9 @@ void dcpu16_init(dcpu16_t *computer)
 
 	// Clear the RAM
 	memset(computer->ram, 0 , sizeof(computer->ram));
+	
+	// Clear the profiling data
+	bzero(&computer->profiling, sizeof(computer->profiling));
 }
 
 /* Loads a program into the RAM, returns 1 on success.
@@ -546,6 +551,37 @@ void dcpu16_run_debug(dcpu16_t *computer)
 	}
 }
 
+void dcpu16_profiler_step(dcpu16_t *computer)
+{
+	if (computer->profiling.enabled == 0)
+		return;
+	
+	computer->profiling.instruction_count++;
+	
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	double now = (double)tv.tv_sec + ((double)tv.tv_usec * 0.000001);
+	
+	// If sampling was just enabled, then show first sample sample_frequency seconds from now
+	if (computer->profiling.sample_time == 0.0)
+		computer->profiling.sample_time = now;
+	
+	double sample_elapsed = now - computer->profiling.sample_time;
+	if (sample_elapsed >= computer->profiling.sample_frequency) {
+		// Time since last sample was taken
+		double instructions_per_second = (double)computer->profiling.instruction_count / sample_elapsed;
+		
+		printf("###### PROFILE ######\nTime: %.3lf\nInstructions: %u\nInstructions per second: %.3lf\n",
+			   sample_elapsed, computer->profiling.instruction_count, instructions_per_second);
+		
+		// Reset instruction count
+		computer->profiling.instruction_count = 0;
+		
+		// Remember when this sample was taken (for next time)
+		computer->profiling.sample_time = now;
+	}
+}
+
 void dcpu16_run(dcpu16_t *computer)
 {
 	printf("DCPU16 emulator now running\n");
@@ -554,8 +590,11 @@ void dcpu16_run(dcpu16_t *computer)
 		computer->ram[computer->registers[DCPU16_INDEX_REG_PC]] == 0x7DC1 && 
 		computer->ram[(DCPU16_WORD)(computer->registers[DCPU16_INDEX_REG_PC] + 1)] == computer->registers[DCPU16_INDEX_REG_PC])) {
 		dcpu16_step(computer);
-	}
 
+		// Profiling
+		dcpu16_profiler_step(computer);
+	}
+	
 	printf("Infinite loop detected (reached end of code?)\n");
 	printf("Emulator halted\n\n");
 
@@ -604,13 +643,16 @@ int main(int argc, char * argv[])
 	char * ram_file 	= 0;
 	char binary_ram_file 	= 0;
 	char debug_mode 	= 0;
-
+	char enable_profiling = 0;
+	
 	// Parse the arguments
 	for(int c = 1; c < argc; c++) {
 		if(strcmp(argv[c], "-d") == 0) {
 			debug_mode = 1;
 		} else if(strcmp(argv[c], "-b") == 0) {
 			binary_ram_file = 1;
+		} else if(strcmp(argv[c], "-p") == 0) {
+			enable_profiling = 1;
 		} else {
 			ram_file = argv[c];
 		}
@@ -632,6 +674,14 @@ int main(int argc, char * argv[])
 		dcpu16_enter_ram(computer);
 	}
 
+	if (enable_profiling) {
+		// Enable profiling
+		computer->profiling.enabled = 1;
+		
+		// Show sample data every 1.0 seconds
+		computer->profiling.sample_frequency = 1.0;
+	}
+	
 	// Start the emulator
 	if(debug_mode)
 		dcpu16_run_debug(computer);
