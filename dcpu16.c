@@ -8,7 +8,7 @@
    NOTE: this can work with any register, but it is intended to
    be used for registers a, b, c, x, y, z, i and j.  Addressing
    other registers using this function is not recommended. */
-DCPU16_WORD * dcpu16_register_pointer(dcpu16_t *computer, char index)
+static inline DCPU16_WORD * dcpu16_register_pointer(dcpu16_t *computer, char index)
 {
 	return &computer->registers[index];
 }
@@ -76,7 +76,7 @@ unsigned char dcpu16_get_pointer(dcpu16_t *computer, unsigned char where, DCPU16
 }
 
 /* Must be used when setting the value pointed to by a pointer returned from dpcu16_get_pointer (allows hardware mapped RAM). */
-void dcpu16_set(dcpu16_t * computer, DCPU16_WORD * where, DCPU16_WORD value)
+static inline void dcpu16_set(dcpu16_t * computer, DCPU16_WORD * where, DCPU16_WORD value)
 {
 	if(where >= computer->ram && where < computer->ram + DCPU16_RAM_SIZE) {
 		DCPU16_WORD address = where - computer->ram;
@@ -89,7 +89,7 @@ void dcpu16_set(dcpu16_t * computer, DCPU16_WORD * where, DCPU16_WORD value)
 }
 
 /* Must be used when getting the value pointed to by a pointer returned from dpcu16_get_pointer (allows hardware mapped RAM). */
-DCPU16_WORD dcpu16_get(dcpu16_t * computer, DCPU16_WORD * where)
+static inline DCPU16_WORD dcpu16_get(dcpu16_t * computer, DCPU16_WORD * where)
 {
 	if(where >= computer->ram && where < computer->ram + DCPU16_RAM_SIZE) {
 		DCPU16_WORD address = where - computer->ram;
@@ -102,7 +102,7 @@ DCPU16_WORD dcpu16_get(dcpu16_t * computer, DCPU16_WORD * where)
 }
 
 /* Returns 1 if v is a literal value, else 0. */
-char dcpu16_is_literal(char v)
+static inline char dcpu16_is_literal(char v)
 {
 	if(v == DCPU16_AB_VALUE_WORD || (v >= 0x20 && v <= 0x3F))
 		return 1;
@@ -535,12 +535,9 @@ void dcpu16_run_debug(dcpu16_t *computer)
 
 void dcpu16_profiler_step(dcpu16_t *computer)
 {
-	if (computer->profiling.enabled == 0)
-		return;
-	
 	computer->profiling.instruction_count++;
 	
-	if ((computer->profiling.instruction_count % 100) == 0) {
+	if ((computer->profiling.instruction_count % 1000) == 0) {
 		struct timeval tv;
 		gettimeofday(&tv, NULL);
 		double now = (double)tv.tv_sec + ((double)tv.tv_usec * 0.000001);
@@ -570,13 +567,16 @@ void dcpu16_run(dcpu16_t *computer)
 {
 	printf("DCPU16 emulator now running\n");
 
-	while(!(computer->ram[computer->registers[DCPU16_INDEX_REG_PC]] == (((0x20 + computer->registers[DCPU16_INDEX_REG_PC]) << 10) | 1) ||
-		computer->ram[computer->registers[DCPU16_INDEX_REG_PC]] == 0x7DC1 && 
-		computer->ram[(DCPU16_WORD)(computer->registers[DCPU16_INDEX_REG_PC] + 1)] == computer->registers[DCPU16_INDEX_REG_PC])) {
+	/* Timo Fixme: This infinite loop detection is quite slow and interferes with performance profiling.  Turned it off for now. */
+	/* while(!(computer->ram[computer->registers[DCPU16_INDEX_REG_PC]] == (((0x20 + computer->registers[DCPU16_INDEX_REG_PC]) << 10) | 1) ||
+	 computer->ram[computer->registers[DCPU16_INDEX_REG_PC]] == 0x7DC1 && 
+	 computer->ram[(DCPU16_WORD)(computer->registers[DCPU16_INDEX_REG_PC] + 1)] == computer->registers[DCPU16_INDEX_REG_PC])) */
+	while(1) {
 		dcpu16_step(computer);
 
 		// Profiling
-		dcpu16_profiler_step(computer);
+		if (computer->profiling.enabled != 0)
+			dcpu16_profiler_step(computer);
 	}
 	
 	printf("Infinite loop detected (reached end of code?)\n");
