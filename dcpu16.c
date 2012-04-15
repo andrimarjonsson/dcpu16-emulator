@@ -389,28 +389,10 @@ void dcpu16_dump_ram(dcpu16_t *computer, DCPU16_WORD start, DCPU16_WORD end)
 	putchar('\n');
 }
 
-/* Initializes the emulator (sets register values and clears the RAM) */
+/* Initializes the emulator (clears the registers and RAM) */
 void dcpu16_init(dcpu16_t *computer)
 {
-	// Set registers
-	computer->registers[DCPU16_INDEX_REG_A] = 0;
-	computer->registers[DCPU16_INDEX_REG_B] = 0;
-	computer->registers[DCPU16_INDEX_REG_C] = 0;
-	computer->registers[DCPU16_INDEX_REG_X] = 0;
-	computer->registers[DCPU16_INDEX_REG_Y] = 0;
-	computer->registers[DCPU16_INDEX_REG_Z] = 0;
-	computer->registers[DCPU16_INDEX_REG_I] = 0;
-	computer->registers[DCPU16_INDEX_REG_J] = 0;
-
-	computer->registers[DCPU16_INDEX_REG_PC] = 0;
-	computer->registers[DCPU16_INDEX_REG_SP] = 0;
-	computer->registers[DCPU16_INDEX_REG_O] = 0;
-
-	// Clear the RAM
-	memset(computer->ram, 0 , sizeof(computer->ram));
-	
-	// Clear the profiling data
-	bzero(&computer->profiling, sizeof(computer->profiling));
+	memset(computer, 0 , sizeof(*computer));
 }
 
 /* Loads a program into the RAM, returns 1 on success.
@@ -558,27 +540,29 @@ void dcpu16_profiler_step(dcpu16_t *computer)
 	
 	computer->profiling.instruction_count++;
 	
-	struct timeval tv;
-	gettimeofday(&tv, NULL);
-	double now = (double)tv.tv_sec + ((double)tv.tv_usec * 0.000001);
-	
-	// If sampling was just enabled, then show first sample sample_frequency seconds from now
-	if (computer->profiling.sample_time == 0.0)
-		computer->profiling.sample_time = now;
-	
-	double sample_elapsed = now - computer->profiling.sample_time;
-	if (sample_elapsed >= computer->profiling.sample_frequency) {
-		// Time since last sample was taken
-		double instructions_per_second = (double)computer->profiling.instruction_count / sample_elapsed;
+	if ((computer->profiling.instruction_count % 100) == 0) {
+		struct timeval tv;
+		gettimeofday(&tv, NULL);
+		double now = (double)tv.tv_sec + ((double)tv.tv_usec * 0.000001);
 		
-		printf("###### PROFILE ######\nTime: %.3lf\nInstructions: %u\nInstructions per second: %.3lf\n",
-			   sample_elapsed, computer->profiling.instruction_count, instructions_per_second);
+		// If sampling was just enabled, then show first sample sample_frequency seconds from now
+		if (computer->profiling.sample_time == 0.0)
+			computer->profiling.sample_time = now;
 		
-		// Reset instruction count
-		computer->profiling.instruction_count = 0;
-		
-		// Remember when this sample was taken (for next time)
-		computer->profiling.sample_time = now;
+		double sample_elapsed = now - computer->profiling.sample_time;
+		if (sample_elapsed >= computer->profiling.sample_frequency) {
+			// Time since last sample was taken
+			double instructions_per_second = (double)computer->profiling.instruction_count / sample_elapsed;
+			
+			printf("[ PROFILE ]\nSample Duration: %.3lf\nInstructions: %u\nInstructions per second: %.3lf\n-----------\n",
+				   sample_elapsed, computer->profiling.instruction_count, instructions_per_second);
+			
+			// Reset instruction count
+			computer->profiling.instruction_count = 0;
+			
+			// Remember when this sample was taken (for next time)
+			computer->profiling.sample_time = now;
+		}
 	}
 }
 
