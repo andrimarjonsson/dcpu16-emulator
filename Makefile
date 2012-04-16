@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-std=c99 -O3 -g
+CFLAGS=-std=c99 -O3 -g -Wno-unused-result
 
 all: dcpu16
 
