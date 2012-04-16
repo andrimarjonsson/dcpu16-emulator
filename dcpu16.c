@@ -613,10 +613,6 @@ int main(int argc, char *argv[])
 	dcpu16_t *computer = &computerOnTheStack;
 	dcpu16_init(computer);
 
-	// No callback functions
-	computerOnTheStack.callback.unmapped_ram_changed = 0;
-	computerOnTheStack.callback.register_changed = 0;
-
 	// Command line arguments
 	char *ram_file 	= 0;
 	char binary_ram_file 	= 0;
