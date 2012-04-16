@@ -67,7 +67,7 @@ static inline DCPU16_WORD *dcpu16_register_pointer(dcpu16_t *computer, char inde
 }
 
 /* Sets *retval to point to a register or a DCPU16_WORD in RAM. Returns the number of cycles it took to look it up. */
-unsigned char dcpu16_get_pointer(dcpu16_t *computer, unsigned char where, DCPU16_WORD *tmp_storage, DCPU16_WORD **retval)
+static unsigned char dcpu16_get_pointer(dcpu16_t *computer, unsigned char where, DCPU16_WORD *tmp_storage, DCPU16_WORD **retval)
 {
 	if(where <= DCPU16_AB_VALUE_REG_J) {
 		// 0x00-0x07 (value of register)
@@ -145,7 +145,7 @@ static inline char dcpu16_is_literal(char v)
 }
 
 /* Skips the next instruction (advances PC). */
-void dcpu16_skip_next_instruction(dcpu16_t *computer)
+static void dcpu16_skip_next_instruction(dcpu16_t *computer)
 {
 	// Parse the instruction but don't execute it
 	DCPU16_WORD w = computer->ram[computer->registers[DCPU16_INDEX_REG_PC]];
@@ -483,7 +483,7 @@ int dcpu16_load_ram(dcpu16_t *computer, char *file, char binary)
 	return 1;
 }
 
-void dcpu16_run_debug(dcpu16_t *computer)
+static void dcpu16_run_debug(dcpu16_t *computer)
 {
 	printf("DCPU16 emulator now running in debug mode\n"
 		"\tType 's' to execute the next instruction\n"
@@ -523,7 +523,7 @@ void dcpu16_run_debug(dcpu16_t *computer)
 	}
 }
 
-void dcpu16_profiler_step(dcpu16_t *computer)
+static void dcpu16_profiler_step(dcpu16_t *computer)
 {
 	computer->profiling.instruction_count++;
 	
@@ -631,7 +631,6 @@ int main(int argc, char *argv[])
 			ram_file = argv[c];
 		}
 	}
-
 
 	// Load the RAM file or let the user enter program manually
 	if(ram_file) {
