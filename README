@@ -11,6 +11,7 @@ Terminal 'dcpu16 parameters ram_file'.
 	PARAMETERS:
 		-d	debug mode (let's you step through the instructions)
 		-b	ram file is in binary format with little endian words
+		-p	enable profiling
 
 	EXAMPLES:
 		dcpu16 -d -b notch_program.bin
