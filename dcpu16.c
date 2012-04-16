@@ -424,7 +424,7 @@ void dcpu16_init(dcpu16_t *computer)
 
 /* Loads a program into the RAM, returns true on success.
    If binary is false the file is opened as a binary file and it expects the 16-bit integers to be stored in little endian order. */
-int dcpu16_load_ram(dcpu16_t *computer, char *file, char binary)
+int dcpu16_load_ram(dcpu16_t *computer, const char *file, char binary)
 {
 	FILE *f;
 	DCPU16_WORD *ram_p = computer->ram;

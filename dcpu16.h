@@ -96,7 +96,7 @@ typedef struct _dcpu16_t
 } dcpu16_t;
 
 void dcpu16_init(dcpu16_t *computer);
-int dcpu16_load_ram(dcpu16_t *computer, char *file, char binary);
+int dcpu16_load_ram(dcpu16_t *computer, const char *file, char binary);
 void dcpu16_run(dcpu16_t *computer);
 unsigned char dcpu16_step(dcpu16_t *computer);
 void dcpu16_dump_ram(dcpu16_t *computer, DCPU16_WORD start, DCPU16_WORD end);
