@@ -399,6 +399,7 @@ void dcpu16_dump_ram(dcpu16_t *computer, DCPU16_WORD start, DCPU16_WORD end)
 		end = (tmp + 1) *8;
 	}
 
+	// Let the printing begin
 	printf("\nRAM DUMP\n");
 
 	for(; start <= end; start+=8) {
@@ -421,8 +422,8 @@ void dcpu16_init(dcpu16_t *computer)
 	memset(computer, 0 , sizeof(*computer));
 }
 
-/* Loads a program into the RAM, returns 1 on success.
-   If binary equals 1 the file is opened as a binary file and it expects the 16-bit integers to be stored in little endian order. */
+/* Loads a program into the RAM, returns true on success.
+   If binary is false the file is opened as a binary file and it expects the 16-bit integers to be stored in little endian order. */
 int dcpu16_load_ram(dcpu16_t *computer, char *file, char binary)
 {
 	FILE *f;
@@ -480,43 +481,6 @@ int dcpu16_load_ram(dcpu16_t *computer, char *file, char binary)
 	printf("Loaded %d words into RAM\n", (int)words_loaded);
 	
 	return 1;
-}
-
-
-
-void dcpu16_enter_ram(dcpu16_t *computer)
-{
-	printf("ENTER RAM CONTENT MANUALLY\n");
-	printf("Expects lower case letters, hexadecimal 16-bit integers.\n\n");
-	printf("Type ENTER without entering a number when you are done."
-		"The rest of the RAM will be filled with zeroes.\n\n");
-
-	DCPU16_WORD word;
-	DCPU16_WORD *ram_p = computer->ram;
-
-	char tmp[64];
-	memset(tmp, 0, sizeof(tmp));
-
-	for(;;) {
-		unsigned int ram_index = ram_p - computer->ram;
-		printf("%.4x:\t", ram_index);
-
-		// Read input as a string
-		gets(tmp);
-		tmp[63] = 0;
-
-		if(!strcmp(tmp, ""))
-			break;
-
-		// Convert to unsigned short
-		if(!sscanf(tmp, "%hx", &word))
-			break;
-
-		*ram_p = word;
-		ram_p++;
-	}
-
-	putchar('\n');
 }
 
 void dcpu16_run_debug(dcpu16_t *computer)
@@ -676,17 +640,15 @@ int main(int argc, char *argv[])
 	// Load the RAM file or let the user enter program manually
 	if(ram_file) {
 		if(binary_ram_file) {
-			if(!dcpu16_load_ram(computer, ram_file, 1)) {
+			if(!dcpu16_load_ram(computer, ram_file, 1))
 				return 0;
-			}
 		} else {
-			if(!dcpu16_load_ram(computer, ram_file, 0)) {
+			if(!dcpu16_load_ram(computer, ram_file, 0))
 				return 0;
-			}
 		}
-		
 	} else {
-		dcpu16_enter_ram(computer);
+		printf("No RAM file loaded.\n");
+		return 0;
 	}
 
 	if (enable_profiling) {
