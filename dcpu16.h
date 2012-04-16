@@ -81,6 +81,12 @@ typedef struct _dcpu16_t
 		double sample_start_time;
 		unsigned instruction_count;
 	} profiling;
+
+	// Pointers to callback functions
+	struct callback {
+		void (* register_changed)(unsigned char reg, DCPU16_WORD val);
+		void (* unmapped_ram_changed)(DCPU16_WORD address, DCPU16_WORD val);
+	} callback;
 	
 	// All registers including PC and SP
 	DCPU16_WORD registers[DCPU16_REGISTER_COUNT];
