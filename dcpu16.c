@@ -384,10 +384,6 @@ void dcpu16_print_registers(dcpu16_t *computer)
 /* Prints the contents of the RAM. */
 void dcpu16_dump_ram(dcpu16_t *computer, DCPU16_WORD start, DCPU16_WORD end)
 {
-	// Check if end is out ouf bounds
-	if(end >= DCPU16_RAM_SIZE - 8)
-		end = DCPU16_RAM_SIZE - 9;
-
 	// Align start and end addresses to multiples of 8
 	if(start % 8 != 0) {
 		int tmp = start / 8;
