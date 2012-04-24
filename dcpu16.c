@@ -372,13 +372,13 @@ unsigned char dcpu16_step(dcpu16_t *computer)
 /* Displays the contents of the registers. */
 void dcpu16_print_registers(dcpu16_t *computer)
 {
-	printf("--------------------------------------------------------------\n");
-	printf("a:%x b:%x c:%x x:%x y:%x z:%x i:%x j:%x pc:%x sp:%x o:%x\n", 
+	PRINTF("--------------------------------------------------------------\n");
+	PRINTF("a:%x b:%x c:%x x:%x y:%x z:%x i:%x j:%x pc:%x sp:%x o:%x\n", 
 		computer->registers[DCPU16_INDEX_REG_A], computer->registers[DCPU16_INDEX_REG_B], computer->registers[DCPU16_INDEX_REG_C],
 		computer->registers[DCPU16_INDEX_REG_X], computer->registers[DCPU16_INDEX_REG_Y], computer->registers[DCPU16_INDEX_REG_Z],
 		computer->registers[DCPU16_INDEX_REG_I], computer->registers[DCPU16_INDEX_REG_J], computer->registers[DCPU16_INDEX_REG_PC],
 		computer->registers[DCPU16_INDEX_REG_SP], computer->registers[DCPU16_INDEX_REG_O]);
-	printf("--------------------------------------------------------------\n");
+	PRINTF("--------------------------------------------------------------\n");
 }
 
 /* Prints the contents of the RAM. */
@@ -396,14 +396,14 @@ void dcpu16_dump_ram(dcpu16_t *computer, DCPU16_WORD start, DCPU16_WORD end)
 	}
 
 	// Let the printing begin
-	printf("\nRAM DUMP\n");
+	PRINTF("\nRAM DUMP\n");
 
 	for(; start <= end; start+=8) {
-		printf("%.4x:", start);
+		PRINTF("%.4x:", start);
 
 		for(int i = 0; i < 8; i++) {
 			DCPU16_WORD w = computer->ram[start + i];
-			printf("%.4x ", w);
+			PRINTF("%.4x ", w);
 		}
 
 		putchar('\n');
@@ -429,14 +429,14 @@ int dcpu16_load_ram(dcpu16_t *computer, const char *file, char binary)
 		// Open the file for binary reading
 		f = fopen(file, "rb");
 		if(!f) {
-			printf("Couldn't open RAM file.\n");
+			PRINTF("Couldn't open RAM file.\n");
 			return 0;
 		}
 
 		// Read the 16-bit integers
 		while(!feof(f)) {
 			if(ram_p > computer->ram + DCPU16_RAM_SIZE) {
-				printf("RAM file is too large.\n");
+				PRINTF("RAM file is too large.\n");
 				fclose(f);
 				return 0;
 			}
@@ -451,14 +451,14 @@ int dcpu16_load_ram(dcpu16_t *computer, const char *file, char binary)
 		// Open the file for reading
 		f = fopen(file, "r");
 		if(!f) {
-			printf("Couldn't open RAM file.\n");
+			PRINTF("Couldn't open RAM file.\n");
 			return 0;
 		}
 
 		// Read the 16-bit integers
 		while(!feof(f)) {
 			if(ram_p > computer->ram + DCPU16_RAM_SIZE) {
-				printf("RAM file is too large.\n");
+				PRINTF("RAM file is too large.\n");
 				fclose(f);
 				return 0;
 			}
@@ -474,14 +474,14 @@ int dcpu16_load_ram(dcpu16_t *computer, const char *file, char binary)
 	fclose(f);
 
 	DCPU16_WORD words_loaded = ram_p - computer->ram;
-	printf("Loaded %d words into RAM\n", (int)words_loaded);
+	PRINTF("Loaded %d words into RAM\n", (int)words_loaded);
 	
 	return 1;
 }
 
 static void dcpu16_run_debug(dcpu16_t *computer)
 {
-	printf("DCPU16 emulator now running in debug mode\n"
+	PRINTF("DCPU16 emulator now running in debug mode\n"
 		"\tType 's' to execute the next instruction\n"
 		"\tType 'r' to print the contents of the registers\n"
 		"\tType 'd' to display what's in the RAM\n"
@@ -497,7 +497,7 @@ static void dcpu16_run_debug(dcpu16_t *computer)
 			// Step
 			int pc_before = computer->registers[DCPU16_INDEX_REG_PC];
 			int cycles = dcpu16_step(computer);
-			printf("pc: %.4x | instruction: %.4x | cycles: %d | pc afterwards: %.4x\t\n\n",
+			PRINTF("pc: %.4x | instruction: %.4x | cycles: %d | pc afterwards: %.4x\t\n\n",
 				pc_before, computer->ram[pc_before], cycles, computer->registers[DCPU16_INDEX_REG_PC]);
 		} else if(i == 'r') {
 			// Display the contents of the registers
@@ -509,9 +509,9 @@ static void dcpu16_run_debug(dcpu16_t *computer)
 			DCPU16_WORD d_start;
 			DCPU16_WORD d_end;
 
-			printf("\nRAM dump start address (hex): 0x");
+			PRINTF("\nRAM dump start address (hex): 0x");
 			scanf("%hx", &d_start);
-			printf("RAM dump end address (hex): 0x");
+			PRINTF("RAM dump end address (hex): 0x");
 			scanf("%hx", &d_end);
 
 			dcpu16_dump_ram(computer, d_start, d_end);
@@ -537,7 +537,7 @@ static void dcpu16_profiler_step(dcpu16_t *computer)
 			// Time since last sample was taken
 			double instructions_per_second = (double)computer->profiling.instruction_count / sample_elapsed;
 			
-			printf("[ PROFILE ]\nSample Duration: %.3lf\nInstructions: %u\nMHz: %.2lf\n-----------\n",
+			PRINTF("[ PROFILE ]\nSample Duration: %.3lf\nInstructions: %u\nMHz: %.2lf\n-----------\n",
 				   sample_elapsed, computer->profiling.instruction_count, (instructions_per_second / 1000000.0));
 			
 			// Reset instruction count
@@ -551,7 +551,7 @@ static void dcpu16_profiler_step(dcpu16_t *computer)
 
 void dcpu16_run(dcpu16_t *computer)
 {
-	printf("DCPU16 emulator now running\n");
+	PRINTF("DCPU16 emulator now running\n");
 
 	/* Timo Fixme: This infinite loop detection is quite slow and interferes with performance profiling.  Turned it off for now. */
 	/* while(!(computer->ram[computer->registers[DCPU16_INDEX_REG_PC]] == (((0x20 + computer->registers[DCPU16_INDEX_REG_PC]) << 10) | 1) ||
@@ -565,17 +565,17 @@ void dcpu16_run(dcpu16_t *computer)
 			dcpu16_profiler_step(computer);
 	}
 	
-	printf("Infinite loop detected (reached end of code?)\n");
-	printf("Emulator halted\n\n");
+	PRINTF("Infinite loop detected (reached end of code?)\n");
+	PRINTF("Emulator halted\n\n");
 
 	// Print the state of the registers
-	printf("STATE:\n");
+	PRINTF("STATE:\n");
 	dcpu16_print_registers(computer);
 
 	// Let the user explore the state
 	char i = 0;
 
-	printf("\nYou can now explore the state of the machine\n"
+	PRINTF("\nYou can now explore the state of the machine\n"
 		"\tType 'r' to print the contents of the registers\n"
 		"\tType 'd' to display what's in the RAM\n"
 	       	"\tType 'q' to quit\n\n");
@@ -593,9 +593,9 @@ void dcpu16_run(dcpu16_t *computer)
 			DCPU16_WORD d_start;
 			DCPU16_WORD d_end;
 
-			printf("\nRAM dump start address: 0x");
+			PRINTF("\nRAM dump start address: 0x");
 			scanf("%hx", &d_start);
-			printf("RAM dump end address: 0x");
+			PRINTF("RAM dump end address: 0x");
 			scanf("%hx", &d_end);
 
 			dcpu16_dump_ram(computer, d_start, d_end);
@@ -638,7 +638,7 @@ int main(int argc, char *argv[])
 				return 0;
 		}
 	} else {
-		printf("No RAM file loaded.\n");
+		PRINTF("No RAM file loaded.\n");
 		return 0;
 	}
 

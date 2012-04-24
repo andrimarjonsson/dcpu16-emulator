@@ -95,6 +95,14 @@ typedef struct _dcpu16_t
 	DCPU16_WORD ram[DCPU16_RAM_SIZE];
 } dcpu16_t;
 
+
+/* This is useful if someone wants to redirect all the console writes.
+   Just define PRINTF to whatever you want before including this header file.  */
+#ifndef PRINTF
+	#define PRINTF(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#endif // PRINTF
+
+/* Declaration of "public" functions */
 void dcpu16_init(dcpu16_t *computer);
 int dcpu16_load_ram(dcpu16_t *computer, const char *file, char binary);
 void dcpu16_run(dcpu16_t *computer);
