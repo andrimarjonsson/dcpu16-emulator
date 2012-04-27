@@ -4,6 +4,45 @@
 #include <sys/time.h>
 #include "dcpu16.h"
 
+/* Installs the device and returns a non-negative value on success. The returned value is the index/slot where the device was installed. */
+int dcpu16_install_device(dcpu16_t *computer, dcpu16_device_t *device)
+{
+	for(int slot = 0; slot < DCPU16_DEVICE_SLOTS; slot++) {
+		if(!computer->devices[slot]) {
+			computer->devices[slot] = device;
+			return slot;
+		}
+	}
+
+	return -1;
+}
+
+/* Calls the device's release function and then removes it from the computer. */
+void dcpu16_release_device(dcpu16_t *computer, int slot)
+{
+	if(computer->devices[slot]) {
+		if(computer->devices[slot]->release)
+			computer->devices[slot]->release();
+
+		computer->devices[slot] = 0;
+	}
+}
+
+/* Finds the device which is mapped to the specified memory address.
+   Returns a pointer to the dcpu16_device_t structure or 0 if the address is unmapped. */
+static dcpu16_device_t * dcpu16_mapped_device(dcpu16_t *computer, DCPU16_WORD address) 
+{
+	for(int slot = 0; slot < DCPU16_DEVICE_SLOTS; slot++) {
+		if(computer->devices[slot]) {
+			if(computer->devices[slot]->ram_start_address <= address &&
+			   computer->devices[slot]->ram_end_address >= address)
+				return computer->devices[slot];
+		}
+	}
+
+	return 0;
+}
+
 /* Must be used when setting the value of ANY register or any RAM of the emulated computer. */
 static inline void dcpu16_set(dcpu16_t *computer, DCPU16_WORD *where, DCPU16_WORD value)
 {
@@ -12,19 +51,47 @@ static inline void dcpu16_set(dcpu16_t *computer, DCPU16_WORD *where, DCPU16_WOR
 		DCPU16_WORD ram_address = where - computer->ram;
 
 		// Check for hardware mapped RAM
+		dcpu16_device_t * dev = dcpu16_mapped_device(computer, ram_address);
+		if(dev) {
+			dev->write(ram_address - dev->ram_start_address, value);
+		} else {
+			// Call the callback function if address was not hardware mapped
+			if(computer->callback.unmapped_ram_changed)
+				computer->callback.unmapped_ram_changed(ram_address, value);
 
-		// Call the callback function if address was not hardware mapped
-		if(computer->callback.unmapped_ram_changed)
-			computer->callback.unmapped_ram_changed(ram_address, value);
-
+			// Write to RAM
+			*where = value;
+		}
 	} else if(where >= computer->registers && where < computer->registers + DCPU16_REGISTER_COUNT) {	// Register
 		// Call the callback function
 		if(computer->callback.register_changed)
 			computer->callback.register_changed(where - computer->registers, value);
+
+		// Set the register value
+		*where = value;
 	}
-	
-	// Set the value
-	*where = value;
+}
+
+/* Must be used when getting the value of ANY register or any RAM of the emulated computer. */
+static inline DCPU16_WORD dcpu16_get(dcpu16_t *computer, DCPU16_WORD *where)
+{
+	if(where >= computer->ram && where < computer->ram + DCPU16_RAM_SIZE) {	// RAM
+		// Calculate the RAM address
+		DCPU16_WORD ram_address = where - computer->ram;
+
+		// Check for hardware mapped RAM
+		dcpu16_device_t * dev = dcpu16_mapped_device(computer, ram_address);
+		if(dev) {
+			return dev->read(ram_address - dev->ram_start_address);
+		} else {
+			// Read from RAM
+			return *where;
+		}
+	} else if(where >= computer->registers && where < computer->registers + DCPU16_REGISTER_COUNT) {	// Register
+		return *where;
+	} else {
+		return *where;		// Constant value
+	}
 }
 
 /* Instead of having to call dcpu16_set every time PC needs to increase, we can increase it directly.
@@ -57,7 +124,7 @@ static inline void dcpu16_decrease_sp(dcpu16_t *computer)
 		computer->callback.register_changed(DCPU16_INDEX_REG_SP, computer->registers[DCPU16_INDEX_REG_SP] - 1);
 }
 
-/* Returns a pointer to the register with the index specified. 
+/* Returns a pointer to the register with the index specified.
    NOTE: this can work with any register, but it is intended to
    be used for registers a, b, c, x, y, z, i and j.  Addressing
    other registers using this function is not recommended. */
@@ -125,14 +192,6 @@ static unsigned char dcpu16_get_pointer(dcpu16_t *computer, unsigned char where,
 
 	*retval = 0;
 	return 0;
-}
-
-/* Must be used when getting the value of ANY register or any RAM of the emulated computer. */
-static inline DCPU16_WORD dcpu16_get(dcpu16_t *computer, DCPU16_WORD *where)
-{
-	// NOTE: This function might be useless. Not sure if it is needed for getting keyboard input later.
-
-	return *where;
 }
 
 /* Returns true if v is a literal (v is expected to be a 6-bit AB value). */
@@ -587,7 +646,7 @@ int main(int argc, char *argv[])
 	char *ram_file 	= 0;
 	char binary_ram_file 	= 0;
 	char debug_mode 	= 0;
-	char enable_profiling = 0;
+	char enable_profiling 	= 0;
 	
 	// Parse the arguments
 	for(int c = 1; c < argc; c++) {

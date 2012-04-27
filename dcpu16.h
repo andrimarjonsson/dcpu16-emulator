@@ -71,6 +71,22 @@ typedef unsigned short DCPU16_WORD;
 #define DCPU16_INDEX_REG_SP				9
 #define DCPU16_INDEX_REG_O				10
 
+#define DCPU16_DEVICE_SLOTS				256
+
+typedef struct _dcpu16_device_t
+{
+	// RAM mapped for I/O
+	DCPU16_WORD ram_start_address;
+	DCPU16_WORD ram_end_address;
+
+	// Function pointers
+	void (* initialize)(void);
+	void (* release)(void);
+	void (* write)(DCPU16_WORD relative_address, DCPU16_WORD value);
+	DCPU16_WORD (* read)(DCPU16_WORD relative_address);
+
+} dcpu16_device_t;
+
 typedef struct _dcpu16_t
 {
 	// Used for performance profiling
@@ -88,26 +104,29 @@ typedef struct _dcpu16_t
 		void (* unmapped_ram_changed)(DCPU16_WORD address, DCPU16_WORD val);
 	} callback;
 	
+	// RAM mapped devices
+	dcpu16_device_t * devices[DCPU16_DEVICE_SLOTS];
+
 	// All registers including PC and SP
 	DCPU16_WORD registers[DCPU16_REGISTER_COUNT];
-	
-	// RAM
 	DCPU16_WORD ram[DCPU16_RAM_SIZE];
+
 } dcpu16_t;
 
-
-/* This is useful if someone wants to redirect all the console writes.
-   Just define PRINTF to whatever you want before including this header file.  */
-#ifndef PRINTF
-	#define PRINTF(fmt, ...) printf(fmt, ##__VA_ARGS__)
-#endif // PRINTF
-
 /* Declaration of "public" functions */
+int dcpu16_install_device(dcpu16_t *computer, dcpu16_device_t *device);
+void dcpu16_release_device(dcpu16_t *computer, int slot);
 void dcpu16_init(dcpu16_t *computer);
 int dcpu16_load_ram(dcpu16_t *computer, const char *file, char binary);
 void dcpu16_run(dcpu16_t *computer);
 unsigned char dcpu16_step(dcpu16_t *computer);
 void dcpu16_dump_ram(dcpu16_t *computer, DCPU16_WORD start, DCPU16_WORD end);
 void dcpu16_print_registers(dcpu16_t *computer);
+
+/* This is useful if someone wants to redirect all the console writes.
+   Just define PRINTF to whatever you want before including this header file.  */
+#ifndef PRINTF
+	#define PRINTF(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#endif // PRINTF
 
 #endif // DCPU16_H
