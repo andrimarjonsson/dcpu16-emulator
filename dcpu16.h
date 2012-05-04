@@ -1,6 +1,8 @@
 #ifndef DCPU16_H
 #define DCPU16_H
 
+#include "config.h>
+
 typedef unsigned short DCPU16_WORD;
 
 #define DCPU16_RAM_SIZE 			0x10000
