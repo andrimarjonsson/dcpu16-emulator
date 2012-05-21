@@ -1,7 +1,7 @@
 #ifndef DCPU16_H
 #define DCPU16_H
 
-#include "config.h>
+#include "config.h"
 
 typedef unsigned short DCPU16_WORD;
 

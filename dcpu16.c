@@ -94,14 +94,9 @@ static inline DCPU16_WORD dcpu16_get(dcpu16_t *computer, DCPU16_WORD *where)
 	}
 }
 
-/* Instead of having to call dcpu16_set every time PC needs to increase, we can increase it directly.
-   Partly because the callback for PC shouldn't be called every time when it's value is changed.
-   E.g. when parsing an instruction that is more than one word long the callback would be called multiple times
-   if we would use dcpu16_set. */
+/* Call this when the callback for PC changed should be called. */
 static inline void dcpu16_pc_callback(dcpu16_t *computer)
 {	
-	computer->registers[DCPU16_INDEX_REG_PC]++;
-
 	if(computer->callback.register_changed)
 		computer->callback.register_changed(DCPU16_INDEX_REG_PC, computer->registers[DCPU16_INDEX_REG_PC]);
 }
@@ -292,7 +287,7 @@ unsigned char dcpu16_step(dcpu16_t *computer)
 			cycles += 1;
 			dcpu16_set(computer, a_word, dcpu16_get(computer, b_word));
 
-			return cycles;
+			break;
 		case DCPU16_OPCODE_ADD:
 			cycles += 2;
 	
@@ -304,7 +299,7 @@ unsigned char dcpu16_step(dcpu16_t *computer)
 
 			dcpu16_set(computer, a_word, dcpu16_get(computer, a_word) + dcpu16_get(computer, b_word));
 
-			return cycles;
+			break;
 		case DCPU16_OPCODE_SUB:
 			cycles += 2;
 
@@ -316,14 +311,14 @@ unsigned char dcpu16_step(dcpu16_t *computer)
 
 			dcpu16_set(computer, a_word, dcpu16_get(computer, a_word) - dcpu16_get(computer, b_word));
 	
-			return cycles;
+			break;
 		case DCPU16_OPCODE_MUL:
 			cycles += 2;
 
 			computer->registers[DCPU16_INDEX_REG_O] = ((dcpu16_get(computer, a_word) *dcpu16_get(computer, b_word)) >> 16) & 0xFFFF;
 			dcpu16_set(computer, a_word, dcpu16_get(computer, a_word) *dcpu16_get(computer, b_word));
 
-			return cycles;
+			break;
 		case DCPU16_OPCODE_DIV:
 			cycles += 3;
 
@@ -335,7 +330,7 @@ unsigned char dcpu16_step(dcpu16_t *computer)
 				dcpu16_set(computer, a_word, dcpu16_get(computer, a_word) / dcpu16_get(computer, b_word));
 			}
 
-			return cycles;
+			break;
 		case DCPU16_OPCODE_MOD:
 			cycles += 3;
 
@@ -345,39 +340,39 @@ unsigned char dcpu16_step(dcpu16_t *computer)
 				dcpu16_set(computer, a_word, dcpu16_get(computer, a_word) % dcpu16_get(computer, b_word));
 			}
 
-			return cycles;
+			break;
 		case DCPU16_OPCODE_SHL:
 			cycles += 2;
 
 			computer->registers[DCPU16_INDEX_REG_O] = ((dcpu16_get(computer, a_word) << dcpu16_get(computer, b_word)) >> 16) & 0xFFFF;
 			dcpu16_set(computer, a_word, dcpu16_get(computer, a_word) << dcpu16_get(computer, b_word));
 
-			return cycles;
+			break;
 		case DCPU16_OPCODE_SHR:
 			cycles += 2;
 
 			computer->registers[DCPU16_INDEX_REG_O] = ((dcpu16_get(computer, a_word) << 16) >> dcpu16_get(computer, b_word)) & 0xFFFF;
 			dcpu16_set(computer, a_word, dcpu16_get(computer, a_word) >> dcpu16_get(computer, b_word));
 
-			return cycles;
+			break;
 		case DCPU16_OPCODE_AND:
 			cycles += 1;
 
 			dcpu16_set(computer, a_word, dcpu16_get(computer, a_word) & dcpu16_get(computer, b_word));
 
-			return cycles;
+			break;
 		case DCPU16_OPCODE_BOR:
 			cycles += 1;
 
 			dcpu16_set(computer, a_word, dcpu16_get(computer, a_word) | dcpu16_get(computer, b_word));
 
-			return cycles;
+			break;
 		case DCPU16_OPCODE_XOR:
 			cycles += 1;
 
 			dcpu16_set(computer, a_word, dcpu16_get(computer, a_word) ^ dcpu16_get(computer, b_word));
 
-			return cycles;
+			break;
 		case DCPU16_OPCODE_IFE:
 			cycles += 2;
 			
@@ -387,7 +382,7 @@ unsigned char dcpu16_step(dcpu16_t *computer)
 				cycles++;
 			}
 
-			return cycles;
+			break;
 		case DCPU16_OPCODE_IFN:
 			cycles += 2;
 
@@ -397,7 +392,7 @@ unsigned char dcpu16_step(dcpu16_t *computer)
 				cycles++;
 			}
 
-			return cycles;
+			break;
 		case DCPU16_OPCODE_IFG:
 			cycles += 2;
 
@@ -407,7 +402,7 @@ unsigned char dcpu16_step(dcpu16_t *computer)
 				cycles++;
 			}
 
-			return cycles;
+			break;
 		case DCPU16_OPCODE_IFB:
 			cycles += 2;	
 
@@ -417,7 +412,7 @@ unsigned char dcpu16_step(dcpu16_t *computer)
 				cycles++;
 			}
 
-			return cycles;
+			break;
 		};
 	}
 
