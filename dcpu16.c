@@ -17,15 +17,10 @@ int dcpu16_install_device(dcpu16_t *computer, dcpu16_device_t *device)
 	return -1;
 }
 
-/* Calls the device's release function and then removes it from the computer. */
-void dcpu16_release_device(dcpu16_t *computer, int slot)
+/* Removes the device from the computer. */
+void dcpu16_uninstall_device(dcpu16_t *computer, int slot)
 {
-	if(computer->devices[slot]) {
-		if(computer->devices[slot]->release)
-			computer->devices[slot]->release();
-
 		computer->devices[slot] = 0;
-	}
 }
 
 /* Finds the device which is mapped to the specified memory address.
@@ -53,7 +48,7 @@ static inline void dcpu16_set(dcpu16_t *computer, DCPU16_WORD *where, DCPU16_WOR
 		// Check for hardware mapped RAM
 		dcpu16_device_t * dev = dcpu16_mapped_device(computer, ram_address);
 		if(dev) {
-			dev->write(ram_address - dev->ram_start_address, value);
+			dev->write(dev, ram_address - dev->ram_start_address, value);
 		} else {
 			// Call the callback function if address was not hardware mapped
 			if(computer->callback.unmapped_ram_changed)
@@ -82,7 +77,7 @@ static inline DCPU16_WORD dcpu16_get(dcpu16_t *computer, DCPU16_WORD *where)
 		// Check for hardware mapped RAM
 		dcpu16_device_t * dev = dcpu16_mapped_device(computer, ram_address);
 		if(dev) {
-			return dev->read(ram_address - dev->ram_start_address);
+			return dev->read(dev, ram_address - dev->ram_start_address);
 		} else {
 			// Read from RAM
 			return *where;

@@ -82,10 +82,11 @@ typedef struct _dcpu16_device_t
 	DCPU16_WORD ram_end_address;
 
 	// Function pointers
-	void (* initialize)(void);
-	void (* release)(void);
-	void (* write)(DCPU16_WORD relative_address, DCPU16_WORD value);
-	DCPU16_WORD (* read)(DCPU16_WORD relative_address);
+	void (* write)(struct _dcpu16_device_t * dev, DCPU16_WORD relative_address, DCPU16_WORD value);
+	DCPU16_WORD (* read)(struct _dcpu16_device_t * dev, DCPU16_WORD relative_address);
+
+	// Pointer to device specific structure
+	void * struct_ptr;
 
 } dcpu16_device_t;
 
@@ -117,7 +118,7 @@ typedef struct _dcpu16_t
 
 /* Declaration of "public" functions */
 int dcpu16_install_device(dcpu16_t *computer, dcpu16_device_t *device);
-void dcpu16_release_device(dcpu16_t *computer, int slot);
+void dcpu16_uninstall_device(dcpu16_t *computer, int slot);
 void dcpu16_init(dcpu16_t *computer);
 int dcpu16_load_ram(dcpu16_t *computer, const char *file, char binary);
 void dcpu16_run(dcpu16_t *computer);

@@ -1,43 +1,33 @@
 #include "screen.h"
 
-static void (* screen_changed_callback)(char x, char y, DCPU16_WORD value) = 0;
-static DCPU16_WORD screen_buffer[SCREEN_COLUMNS * SCREEN_ROWS];
-
-void screen_create_device(dcpu16_device_t * dev)
+screen_t * screen_create_device(dcpu16_device_t * dev)
 {
 	dev->ram_start_address = SCREEN_RAM_START_ADDRESS;
 	dev->ram_end_address = SCREEN_RAM_END_ADDRESS;
 
-	dev->initialize = screen_initialize;
-	dev->release = screen_release;
 	dev->write = screen_write;
 	dev->read = screen_read;
+
+	dev->struct_ptr = malloc(sizeof(screen_t));
+
+	return dev.struct_ptr;
 }
 
-void screen_set_callback(void (* callback)(char x, char y, DCPU16_WORD value))
+void screen_release_device(dcpu16_device_t * dev)
 {
-	screen_changed_callback = callback;
+	free(dev.struct_ptr);
 }
 
-static void screen_initialize()
+static void screen_write(dcpu16_device_t * dev, DCPU16_WORD address, DCPU16_WORD value)
 {
-	memset(screen_buffer, 0, sizeof(screen_buffer));
+	dev->screen_buffer[address] = value;
+
+	if(dev->screen_changed_callback)
+		dev->screen_changed_callback(address / SCREEN_COLUMNS, address % SCREEN_COLUMNS, value);
 }
 
-static void screen_release()
+static DCPU16_WORD screen_read(dcpu16_device_t * dev, DCPU16_WORD address)
 {
-}
-
-static void screen_write(DCPU16_WORD address, DCPU16_WORD value)
-{
-	screen_buffer[address] = value;
-
-	if(screen_changed_callback)
-		screen_changed_callback(address / SCREEN_COLUMNS, address % SCREEN_COLUMNS, value);
-}
-
-static DCPU16_WORD screen_read(DCPU16_WORD address)
-{
-	return screen_buffer[address];
+	return dev->screen_buffer[address];
 }
 
